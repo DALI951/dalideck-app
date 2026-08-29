@@ -402,24 +402,52 @@ class _SyncCardState extends State<_SyncCard> {
           const SizedBox(height: 12),
 
           if (connected)
-            Row(children: [
-              OutlinedButton.icon(
-                onPressed: () {
-                  sync.startPullTimer();
-                  sync.syncNow();
-                },
-                icon: const Icon(Icons.sync, size: 16),
-                label: Text(t('sync_now')),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: () {
-                  widget.sync.disconnect();
-                  setState(() => _generated = null);
-                },
-                icon: const Icon(Icons.link_off, size: 16),
-                label: Text(t('disconnect')),
-              ),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (_generated != null) ...[
+                Text(t('key_created'),
+                    style: const TextStyle(color: Colors.orange, fontSize: 12)),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: _generated!));
+                    showSnack(context, t('copy'));
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: kPanel,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: kAccent),
+                    ),
+                    child: Text(_generated!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 22, letterSpacing: 4, fontWeight: FontWeight.w800,
+                            fontFamily: 'monospace')),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              Row(children: [
+                OutlinedButton.icon(
+                  onPressed: () {
+                    sync.startPullTimer();
+                    sync.syncNow();
+                  },
+                  icon: const Icon(Icons.sync, size: 16),
+                  label: Text(t('sync_now')),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    widget.sync.disconnect();
+                    setState(() => _generated = null);
+                  },
+                  icon: const Icon(Icons.link_off, size: 16),
+                  label: Text(t('disconnect')),
+                ),
+              ]),
             ])
           else ...[
             // ---- GENERATE side ----
