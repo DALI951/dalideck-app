@@ -81,8 +81,8 @@ class TodayView extends StatelessWidget {
           if (next != null)
             _Metric(
                 label: t('next_exam'),
-                value: '${next!.title} $nextUntil ${t('days')}',
-                sub: s.subjectName(next!.subjectId) ?? ''),
+                value: '${next.title} $nextUntil ${t('days')}',
+                sub: s.subjectName(next.subjectId) ?? ''),
           const SizedBox(height: 8),
           _Section(t('today_classes')),
           if (lessons.isEmpty)

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../i18n.dart';
-import '../main.dart';
 import '../models.dart';
 import '../sync.dart';
 import 'money.dart';

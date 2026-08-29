@@ -114,7 +114,7 @@ class SyncEngine extends ChangeNotifier {
           _ss['updatedAt'] = box['updatedAt'];
           final data = box['data'];
           if (data is Map) {
-            final changed = mergeState(data);
+            final changed = mergeState(Map<String, dynamic>.from(data));
             if (changed) {
               await persistData(store);
             }
@@ -224,7 +224,7 @@ class SyncEngine extends ChangeNotifier {
         _ss['updatedAt'] = box['updatedAt'];
         final data = box['data'];
         if (data is Map) {
-          mergeState(data);
+          mergeState(Map<String, dynamic>.from(data));
           await persistData(store);
         }
         await _doPush();

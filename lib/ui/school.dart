@@ -216,10 +216,10 @@ class _TaskTile extends StatelessWidget {
             style: task.done
                 ? const TextStyle(decoration: TextDecoration.lineThrough, color: kMuted)
                 : null),
-        subtitle: [
+        subtitle: Text([
           if (task.due != null) task.due!,
           if (sub != null) sub,
-        ].join(' · '),
+        ].join(' · ')),
         trailing: IconButton(
           icon: Icon(Icons.delete_outline,
               color: overdue ? kAccent : kMuted, size: 20),
@@ -311,7 +311,7 @@ class _ExamTile extends StatelessWidget {
     return Card(
       child: ListTile(
         title: Text(exam.title),
-        subtitle: [s.subjectName(exam.subjectId) ?? '', exam.date].join(' · '),
+        subtitle: Text([s.subjectName(exam.subjectId) ?? '', exam.date].join(' · ')),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

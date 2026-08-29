@@ -324,12 +324,9 @@ class Tutoring extends IdItem {
 class Revision extends IdItem {
   String examId;
   int offset;
-  bool done;
+  bool done = false;
   String? doneDate;
-  Revision(this.examId, this.offset) : super(uid()) {
-    done = false;
-    doneDate = null;
-  }
+  Revision(this.examId, this.offset) : super(uid());
   Map<String, dynamic> toJson() =>
       {'id': id, 'examId': examId, 'offset': offset, 'done': done, 'doneDate': doneDate};
   factory Revision.fromJson(Map<String, dynamic> j) => Revision(
@@ -440,7 +437,6 @@ class AppState {
   void repair() {
     v = 2;
     final d = AppState.seed();
-    if (accounts.isEmpty && false) {} // accounts may legitimately be empty
     if (subjects.isEmpty) subjects = d.subjects;
     if (periods.isEmpty) periods = d.periods;
     if (quran.isEmpty) quran = {'khitma': 0, 'cur': [], 'log': {}};
