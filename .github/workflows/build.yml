@@ -9,6 +9,8 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.KEYSTORE_B64 != '' }}
     permissions:
       contents: write
     steps:
@@ -44,7 +46,7 @@ jobs:
         run: flutter test
 
       - name: Inject signing keystore
-        if: secrets.KEYSTORE_B64 != ''
+        if: env.HAS_KEY == 'true'
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
         run: |
@@ -62,9 +64,8 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Align and sign (zipalign + apksigner)
-        if: secrets.KEYSTORE_B64 != ''
+        if: env.HAS_KEY == 'true'
         env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
           KEYSTORE_KEY_PASS: ${{ secrets.KEYSTORE_KEY_PASS }}
@@ -82,14 +83,14 @@ jobs:
           ls -la build/app/outputs/flutter-apk/*.apk
 
       - name: Upload signed APK
-        if: secrets.KEYSTORE_B64 != ''
+        if: env.HAS_KEY == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: dalideck-apk
           path: build/app/outputs/flutter-apk/dalideck-app-release.apk
 
       - name: Publish release (tags only)
-        if: startsWith(github.ref, 'refs/tags/v') && secrets.KEYSTORE_B64 != ''
+        if: startsWith(github.ref, 'refs/tags/v') && env.HAS_KEY == 'true'
         uses: softprops/action-gh-release@v2
         with:
           files: build/app/outputs/flutter-apk/dalideck-app-release.apk
