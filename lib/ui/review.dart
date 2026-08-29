@@ -30,16 +30,39 @@ class _ReviewViewState extends State<ReviewView> {
     super.dispose();
   }
 
+  Map<String, dynamic> _entry() {
+    final w = widget.store.s.review['weeks'] as Map?;
+    if (w == null) return <String, dynamic>{};
+    final e = w[weekStartStr()];
+    return e is Map ? Map<String, dynamic>.from(e) : <String, dynamic>{};
+  }
+
+  void _save({bool markDone = false}) {
+    widget.store.mutate(() {
+      final s = widget.store.s;
+      final w = Map<String, dynamic>.from((s.review['weeks'] as Map?) ?? {});
+      final wk = weekStartStr();
+      final e = Map<String, dynamic>.from((w[wk] as Map?) ?? {});
+      if (markDone) {
+        e['reviewed'] = !(e['reviewed'] == true);
+      }
+      if (_plan.text.isNotEmpty || e.containsKey('plan')) {
+        e['plan'] = _plan.text;
+      }
+      w[wk] = e;
+      s.review['weeks'] = w;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = widget.store.s;
     final wk = weekStartStr();
-    final weeks = (s.review['weeks'] as Map?) ?? {};
-    final entry = (weeks[wk] as Map?) ?? <String, dynamic>{};
-    final plan = (entry['plan'] as String?) ?? '';
+    final entry = _entry();
+    final plan = entry['plan'] as String? ?? '';
     final reviewed = entry['reviewed'] == true;
+    final weeks = (s.review['weeks'] as Map?) ?? const {};
 
-    // simple metrics
     final tod = todayStr();
     final examsWeek = s.exams.where((e) {
       final d = diffDays(tod, e.date);
@@ -47,84 +70,96 @@ class _ReviewViewState extends State<ReviewView> {
     }).length;
     final tasksOpen = s.tasks.where((x) => !x.done).length;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(t('review'))),
-      body: ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          Text('${t('this_week_review')} — $wk',
-              style: const TextStyle(color: kMuted, fontSize: 12, letterSpacing: 1)),
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${t('exams')} 7d: $examsWeek · ${t('tasks')} ${t('due_now').toLowerCase()}: $tasksOpen',
+    final sortedWeeks = weeks.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+
+    return ListenableBuilder(
+      listenable: widget.store,
+      builder: (context, _) => Scaffold(
+        appBar: AppBar(title: Text(t('review'))),
+        body: ListView(
+          padding: const EdgeInsets.all(12),
+          children: [
+            Text('${t('this_week_review')} — $wk',
+                style: const TextStyle(color: kMuted, fontSize: 12, letterSpacing: 1)),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('${t('exams')} 7d: $examsWeek · ${t('tasks')} ${t('due_now').toLowerCase()}: $tasksOpen',
                     style: const TextStyle(fontSize: 15)),
-              ]),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(t('plan_week'),
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _plan,
-                  maxLines: 4,
-                  decoration: const InputDecoration(hintText: '…'),
-                ),
-                const SizedBox(height: 10),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: reviewed,
-                  activeColor: kAccent,
-                  title: Text(t('mark_reviewed')),
-                  onChanged: (_) => widget.store.mutate(() {
-                    final w2 = (widget.store.s.review['weeks'] as Map?) ?? {};
-                    final e = (w2[wk] as Map?) ?? <String, dynamic>{};
-                    e['plan'] = _plan.text;
-                    e['reviewed'] = !reviewed;
-                    w2[wk] = e;
-                    widget.store.s.review['weeks'] = w2;
-                  }),
-                ),
-                const SizedBox(height: 4),
-                if (_plan.text != plan || !reviewed)
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(t('plan_week'),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _plan,
+                    maxLines: 4,
+                    decoration: const InputDecoration(hintText: '…'),
+                  ),
+                  const SizedBox(height: 10),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: reviewed,
+                    activeColor: kAccent,
+                    title: Text(t('mark_reviewed')),
+                    onChanged: (_) => _save(markDone: true),
+                  ),
+                  const SizedBox(height: 4),
                   Align(
                     alignment: Alignment.centerRight,
                     child: OutlinedButton(
-                      onPressed: () => widget.store.mutate(() {
-                        final w2 = (widget.store.s.review['weeks'] as Map?) ?? {};
-                        final e = (w2[wk] as Map?) ?? <String, dynamic>{};
-                        e['plan'] = _plan.text;
-                        w2[wk] = e;
+                      onPressed: () {
+                        _save();
                         showSnack(context, t('ok'));
-                      }),
+                      },
                       child: Text(t('save')),
                     ),
                   ),
-              ]),
+                ]),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(t('review').toUpperCase(),
-              style: const TextStyle(color: kMuted, fontSize: 12, letterSpacing: 1.2)),
-          ...weeks.entries.map((e) => Card(
-                child: ListTile(
-                  dense: true,
-                  title: Text('${e.key}'),
-                  subtitle: Text((e.value as Map)['plan'] as String? ?? ''),
-                  trailing: (e.value as Map)['reviewed'] == true
-                      ? const Icon(Icons.check_circle, color: Colors.greenAccent)
-                      : const Icon(Icons.circle_outlined, color: kMuted),
-                ),
-              )),
-        ],
+            const SizedBox(height: 16),
+            Text(t('review').toUpperCase(),
+                style: const TextStyle(color: kMuted, fontSize: 12, letterSpacing: 1.2)),
+            if (weekCount(s) == 0)
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(t('empty_review'),
+                    style: const TextStyle(color: kMuted), textAlign: TextAlign.center),
+              ),
+            ...sortedWeeks.map((e) => Card(
+                  child: ListTile(
+                    dense: true,
+                    title: Text('${e.key}'),
+                    subtitle: Text(_mapPlan(e.value)),
+                    trailing: _isReviewed(e.value)
+                        ? const Icon(Icons.check_circle, color: Colors.greenAccent)
+                        : const Icon(Icons.circle_outlined, color: kMuted),
+                  ),
+                )),
+          ],
+        ),
       ),
     );
   }
+
+  int weekCount(AppState s) {
+    final w = s.review['weeks'];
+    if (w is Map) return w.keys.where((k) => '$k'.isNotEmpty).length;
+    return 0;
+  }
+
+  String _mapPlan(Object? v) {
+    if (v is Map) return (v['plan'] as String?) ?? '';
+    return '';
+  }
+
+  bool _isReviewed(Object? v) => v is Map && v['reviewed'] == true;
 }

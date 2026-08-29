@@ -72,6 +72,7 @@ class L {
     'empty_notes': ['No notes yet.', 'لا ملاحظات بعد.'],
     'empty_projects': ['No projects yet.', 'لا مشاريع بعد.'],
     'empty_sessions': ['No sessions yet.', 'لا جلسات بعد.'],
+    'empty_review': ['No weekly plans yet — write one above.', 'لا خطط أسبوعية بعد — اكتب واحدة أعلاه.'],
     'school_days': ['School days', 'أيام الدراسة'],
     'backup': ['Backup', 'نسخ احتياطي'],
     'today_classes': ["TODAY'S LESSONS", 'حصة اليوم'],

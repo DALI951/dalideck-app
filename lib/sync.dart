@@ -136,9 +136,11 @@ class SyncEngine extends ChangeNotifier {
           lastSync = DateTime.now();
           state = SyncStateVal.ok;
         } else if (box['code'] == 'new') {
-          // First contact: seed the server with our data.
+          // First contact: seed the server with our data. (Direct _doPush:
+          // pushNow() would bail out because _busy is still true here.)
           _ss['baseRev'] = 0;
-          await pushNow();
+          _pushAttempts = 0;
+          await _doPush();
         } else {
           lastErr = '${box['code']}';
           state = SyncStateVal.err;

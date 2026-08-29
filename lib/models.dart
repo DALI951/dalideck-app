@@ -509,6 +509,7 @@ class Store extends ChangeNotifier {
     s.repair();
     notifyListeners();
     saveRequested?.call();
+    syncRequested?.call();
   }
 
   void Function()? saveRequested;

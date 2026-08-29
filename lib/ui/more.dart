@@ -21,21 +21,26 @@ class MoreView extends StatefulWidget {
 class _MoreViewState extends State<MoreView> {
   String _q = '';
 
-  void _open(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  void _open(Widget Function(Store) make) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ListenableBuilder(
+        listenable: widget.store,
+        builder: (_, __) => make(widget.store),
+      ),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     final s = widget.store.s;
     final tiles = [
-      (t('focus'), Icons.timer_outlined, FocusView(store: widget.store)),
-      (t('quran'), Icons.menu_book_outlined, QuranView(store: widget.store)),
-      (t('projects'), Icons.rocket_launch_outlined, ProjectsView(store: widget.store)),
-      (t('habits'), Icons.fitness_center_outlined, HabitsView(store: widget.store)),
-      (t('notes'), Icons.note_outlined, NotesView(store: widget.store)),
-      (t('review'), Icons.fact_check_outlined, ReviewView(store: widget.store)),
-      (t('tutoring'), Icons.school_outlined, TutoringView(store: widget.store)),
+      (t('focus'), Icons.timer_outlined, (Store st) => FocusView(store: st)),
+      (t('quran'), Icons.menu_book_outlined, (Store st) => QuranView(store: st)),
+      (t('projects'), Icons.rocket_launch_outlined, (Store st) => ProjectsView(store: st)),
+      (t('habits'), Icons.fitness_center_outlined, (Store st) => HabitsView(store: st)),
+      (t('notes'), Icons.note_outlined, (Store st) => NotesView(store: st)),
+      (t('review'), Icons.fact_check_outlined, (Store st) => ReviewView(store: st)),
+      (t('tutoring'), Icons.school_outlined, (Store st) => TutoringView(store: st)),
     ];
 
     final results = _search(s, _q);
@@ -60,10 +65,10 @@ class _MoreViewState extends State<MoreView> {
               crossAxisSpacing: 12,
               childAspectRatio: 1.35,
               children: [
-                for (final (label, icon, page) in tiles)
+                for (final (label, icon, make) in tiles)
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () => _open(page),
+                    onTap: () => _open(make),
                     child: Container(
                       decoration: BoxDecoration(
                         color: kPanel,
