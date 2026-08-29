@@ -41,6 +41,18 @@ jobs:
           pip install pillow --quiet
           python dev/make_icons.py
 
+      - name: Grant INTERNET (release manifest lacks it from flutter create)
+        run: |
+          python - <<'PY'
+          p = 'android/app/src/main/AndroidManifest.xml'
+          s = open(p).read()
+          if 'android.permission.INTERNET' not in s:
+              s = s.replace('</manifest>',
+                  '    <uses-permission android:name="android.permission.INTERNET"/>\n</manifest>')
+              open(p, 'w').write(s)
+          print('INTERNET present:', 'android.permission.INTERNET' in open(p).read())
+          PY
+
       - name: Install deps
         run: flutter pub get
 
