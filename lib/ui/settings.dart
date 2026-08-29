@@ -5,6 +5,7 @@ import '../i18n.dart';
 import '../main.dart';
 import '../models.dart';
 import '../sync.dart';
+import 'fields.dart';
 
 class SettingsView extends StatelessWidget {
   final Store store;
@@ -19,39 +20,156 @@ class SettingsView extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          _Header(t('profile_name'), s.settings.name, () => _editProfile(context)),
-          const SizedBox(height: 6),
-          Card(child: ListTile(
-            leading: const Icon(Icons.language, color: kMuted),
-            title: Text(t('language')),
-            trailing: SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'en', label: Text('EN')),
-                ButtonSegment(value: 'ar', label: Text('عربي')),
-              ],
-              selected: {s.settings.lang == 'ar' ? 'ar' : 'en'},
-              onSelectionChanged: (sel) {
-                final lang = sel.first;
-                store.mutate(() => s.settings.lang = lang);
+          _Section(t('profile_name')),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.person_outline, color: kMuted),
+              title: Text(s.settings.name),
+              trailing: const Icon(Icons.chevron_right, color: kMuted),
+              onTap: () => _editProfile(context),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.language, color: kMuted),
+              title: Text(t('language')),
+              trailing: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'en', label: Text('EN')),
+                  ButtonSegment(value: 'ar', label: Text('عربي')),
+                ],
+                selected: {s.settings.lang == 'ar' ? 'ar' : 'en'},
+                onSelectionChanged: (sel) {
+                  store.mutate(() => s.settings.lang = sel.first);
+                },
+              ),
+            ),
+          ),
+          _Section(t('school')),
+          Card(
+            child: Column(children: [
+              ListTile(
+                leading: const Icon(Icons.currency_exchange_outlined, color: kMuted),
+                title: Text(t('currency')),
+                trailing: Text(s.settings.currency,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                onTap: () => _editCurrency(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.savings_outlined, color: kMuted),
+                title: Text(t('monthly_budget')),
+                trailing: Text(fmtM(s.settings.monthlyBudget),
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                onTap: () => _editBudget(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.event_outlined, color: kMuted),
+                title: Text(t('school_start')),
+                trailing: Text(s.settings.schoolStart,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                onTap: () async {
+                  final d = await showDatePicker(
+                    context: context,
+                    initialDate: dateOf(s.settings.schoolStart),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2035),
+                  );
+                  if (d != null) {
+                    store.mutate(() => s.settings.schoolStart = isoOf(d));
+                  }
+                },
+              ),
+            ]),
+          ),
+          Card(
+            child: Column(children: [
+              ListTile(
+                leading: const Icon(Icons.calendar_today_outlined, color: kMuted),
+                title: Text(t('school_days')),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Wrap(spacing: 8, runSpacing: 8, children: [
+                  for (var i = 0; i < 7; i++)
+                    FilterChip(
+                      label: Text(t([
+                        'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+                        'saturday', 'sunday'
+                      ][i])),
+                      selected: s.settings.schoolDays.contains(i),
+                      onSelected: (v) => store.mutate(() {
+                        if (v && !s.settings.schoolDays.contains(i)) {
+                          s.settings.schoolDays.add(i);
+                        } else if (!v) {
+                          s.settings.schoolDays.remove(i);
+                        }
+                      }),
+                    ),
+                ]),
+              ),
+            ]),
+          ),
+          _Section(t('account')),
+          ...s.accounts.map((a) => Card(
+                child: ListTile(
+                  leading: const Icon(Icons.account_balance_wallet_outlined, color: kMuted),
+                  title: Text('${a.name} · ${a.type}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: kMuted, size: 20),
+                    onPressed: () => store.mutate(() => s.accounts.remove(a)),
+                  ),
+                ),
+              )),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.add, color: kAccent),
+              title: Text(t('new_account')),
+              onTap: () => _addAccount(context),
+            ),
+          ),
+          _Section(t('subject')),
+          ...s.subjects.map((sub) => Card(
+                child: ListTile(
+                  dense: true,
+                  title: Text('${sub.name} (x${sub.coeff})'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: kMuted, size: 20),
+                    onPressed: () => store.mutate(() {
+                      s.subjects.remove(sub);
+                      s.cells.removeWhere((k, v) => v == sub.id);
+                    }),
+                  ),
+                ),
+              )),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.add, color: kAccent),
+              title: Text(t('new_subject')),
+              onTap: () => _addSubject(context),
+            ),
+          ),
+          _Section(t('sync')),
+          _SyncCard(store: store, sync: sync),
+          _Section(t('export_json')),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.download_outlined, color: kMuted),
+              title: Text(t('export_json')),
+              subtitle: Text('dalideck.v1 JSON'),
+              onTap: () async {
+                await Clipboard.setData(
+                    ClipboardData(text: jsonEncode(store.s.toJson())));
+                showSnack(context, '${t('export_json')} → clipboard');
               },
             ),
-          )),
-          _SyncCard(store: store, sync: sync),
-          Card(child: ListTile(
-            leading: const Icon(Icons.download_outlined, color: kMuted),
-            title: Text(t('export_json')),
-            subtitle: Text('dalideck.v1 JSON'),
-            onTap: () async {
-              await Clipboard.setData(
-                  ClipboardData(text: jsonEncode(store.s.toJson())));
-              showSnack(context, t('export_json') + ' → clipboard');
-            },
-          )),
-          Card(child: ListTile(
-            leading: const Icon(Icons.upload_outlined, color: kMuted),
-            title: Text(t('import_json')),
-            onTap: () => _importDialog(context),
-          )),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.upload_outlined, color: kMuted),
+              title: Text(t('import_json')),
+              onTap: () => _importDialog(context),
+            ),
+          ),
           const SizedBox(height: 24),
         ],
       ),
@@ -80,6 +198,98 @@ class SettingsView extends StatelessWidget {
     );
   }
 
+  Future<void> _editCurrency(BuildContext context) async {
+    final s = store.s;
+    final c = TextEditingController(text: s.settings.currency);
+    final v = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(t('currency')),
+        content: TextField(controller: c, autofocus: true),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(t('cancel'))),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, c.text.trim()),
+            child: Text(t('ok')),
+          ),
+        ],
+      ),
+    );
+    if (v != null && v.isNotEmpty) {
+      store.mutate(() => s.settings.currency = v);
+    }
+  }
+
+  Future<void> _editBudget(BuildContext context) async {
+    final s = store.s;
+    final c = TextEditingController(text: (s.settings.monthlyBudget / 1000).toString());
+    final v = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(t('monthly_budget')),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(t('cancel'))),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, c.text.trim()),
+            child: Text(t('ok')),
+          ),
+        ],
+      ),
+    );
+    if (v != null) {
+      store.mutate(() => s.settings.monthlyBudget = tndToM(v));
+    }
+  }
+
+  Future<void> _addAccount(BuildContext context) async {
+    final s = store.s;
+    final v = await showEntryDialog(
+      context,
+      t('new_account'),
+      [
+        EntryField('name', label: 'Name', initial: 'Cash'),
+        EntryField('type',
+            label: t('type'),
+            type: 'select',
+            options: ['cash', 'card', 'mobile', 'other'],
+            initial: 'cash'),
+        EntryField('balance', label: t('balance') + ' (TND)', type: 'number', initial: '0'),
+      ],
+    );
+    if (v == null) return;
+    store.mutate(() {
+      s.accounts.add(Account(uid())
+        ..name = v['name'] as String? ?? 'Account'
+        ..type = v['type'] as String? ?? 'cash'
+        ..base = tndToM(v['balance'] as String? ?? '0'));
+    });
+  }
+
+  Future<void> _addSubject(BuildContext context) async {
+    final s = store.s;
+    final v = await showEntryDialog(
+      context,
+      t('new_subject'),
+      [
+        EntryField('name', label: 'Name'),
+        EntryField('coeff', label: t('coefficient'), type: 'number', initial: '1'),
+      ],
+    );
+    if (v == null) return;
+    final name = v['name'] as String? ?? '';
+    if (name.isEmpty) return;
+    store.mutate(() {
+      s.subjects.add(Subject(uid())
+        ..name = name
+        ..coeff = int.tryParse(v['coeff'] as String? ?? '') ?? 1);
+    });
+  }
+
   Future<void> _importDialog(BuildContext context) async {
     final c = TextEditingController();
     final v = await showDialog<String>(
@@ -103,10 +313,7 @@ class SettingsView extends StatelessWidget {
     if (v == null || v.isEmpty) return;
     try {
       final imported = AppState.fromJson(jsonDecode(v) as Map<String, dynamic>);
-      store.mutate(() {
-        // wholesale adoption, keys stay locally authoritative for the seed
-        store.s = imported;
-      });
+      store.mutate(() => store.s = imported);
       sync.disconnect();
       showSnack(context, t('ok'));
     } catch (_) {
@@ -115,12 +322,9 @@ class SettingsView extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Section extends StatelessWidget {
   final String label;
-  final String value;
-  final VoidCallback onTap;
-  const _Header(this.label, this.value, this.onTap);
-
+  const _Section(this.label);
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -142,95 +346,144 @@ class _SyncCard extends StatefulWidget {
 
 class _SyncCardState extends State<_SyncCard> {
   final _keyC = TextEditingController();
+  String? _generated;
+
+  @override
+  void dispose() {
+    _keyC.dispose();
+    super.dispose();
+  }
+
+  String _statusText(SyncEngine sync) {
+    switch (sync.state) {
+      case SyncStateVal.syncing:
+        return t('syncing_dot');
+      case SyncStateVal.err:
+        return '${t('sync_error')}: ${sync.lastErr}';
+      case SyncStateVal.ok:
+        return t('sync_ok');
+      default:
+        return t('offline_local');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final sync = widget.sync;
     final connected = sync.apiKey != null && sync.apiKey!.length >= 6;
-    String status;
-    switch (sync.state) {
-      case SyncStateVal.syncing:
-        status = t('syncing_dot');
-        break;
-      case SyncStateVal.err:
-        status = '${t('sync_error')}: ${sync.lastErr}';
-        break;
-      case SyncStateVal.ok:
-        status = t('sync_ok');
-        break;
-      default:
-        status = t('offline_local');
-    }
-    final last =
-        sync.lastSync == null ? t('never') : sync.lastSync!.toLocal().toString().substring(0, 19);
-    final masked = (sync.apiKey ?? '').length >= 7
-        ? (sync.apiKey ?? '')
-            .replaceRange(3, (sync.apiKey ?? '').length - 3, '…')
-        : sync.apiKey ?? '';
+    final last = sync.lastSync == null
+        ? t('never')
+        : sync.lastSync!.toLocal().toString().substring(0, 16);
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const Icon(Icons.cloud_sync_outlined, color: kAccent),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.cloud_sync_outlined, color: kAccent),
+            const SizedBox(width: 8),
+            Text(t('sync'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const Spacer(),
+            _dot(sync.state),
+          ]),
+          const SizedBox(height: 10),
+          Text(_statusText(sync),
+              style: TextStyle(color: sync.state == SyncStateVal.err ? kAccent : Colors.white70)),
+          Row(children: [
+            Text('${t('last_sync')}: $last',
+                style: const TextStyle(color: kMuted, fontSize: 12)),
+            if (connected) ...[
               const SizedBox(width: 8),
-              Text(t('sync'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              const Spacer(),
-              _dot(sync.state),
-            ]),
-            const SizedBox(height: 12),
-            Text(status,
-                style: TextStyle(
-                    color:
-                        sync.state == SyncStateVal.err ? kAccent : Colors.white70)),
-            if (sync.lastSync != null)
-              Text('${t('last_sync')}: $last',
+              Text('key ${sync.apiKey}',
+                  style: const TextStyle(color: kMuted, fontSize: 12, fontFamily: 'monospace')),
+            ],
+          ]),
+          const SizedBox(height: 12),
+
+          if (connected)
+            Row(children: [
+              OutlinedButton.icon(
+                onPressed: () {
+                  sync.startPullTimer();
+                  sync.syncNow();
+                },
+                icon: const Icon(Icons.sync, size: 16),
+                label: Text(t('sync_now')),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () {
+                  widget.sync.disconnect();
+                  setState(() => _generated = null);
+                },
+                icon: const Icon(Icons.link_off, size: 16),
+                label: Text(t('disconnect')),
+              ),
+            ])
+          else ...[
+            // ---- GENERATE side ----
+            Text(t('generate_key').toUpperCase(),
+                style: const TextStyle(color: kAccent, fontSize: 11, letterSpacing: 1.2)),
+            const SizedBox(height: 6),
+            if (_generated == null)
+              OutlinedButton.icon(
+                onPressed: () {
+                  final k = generateKey();
+                  sync.connect(k);
+                  setState(() => _generated = k);
+                  Clipboard.setData(ClipboardData(text: k));
+                  showSnack(context, t('key_created'));
+                },
+                icon: const Icon(Icons.auto_awesome, size: 16),
+                label: Text(t('generate')),
+              )
+            else ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: kPanel,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: kAccent),
+                ),
+                child: Text(_generated!,
+                    style: const TextStyle(
+                        fontSize: 22, letterSpacing: 4, fontWeight: FontWeight.w800,
+                        fontFamily: 'monospace')),
+              ),
+              const SizedBox(height: 6),
+              Text(t('key_short_ok'),
                   style: const TextStyle(color: kMuted, fontSize: 12)),
-            const SizedBox(height: 12),
-            if (!connected)
-              Row(children: [
-                Expanded(
-                  child: TextField(
-                    controller: _keyC,
-                    decoration: InputDecoration(
-                        labelText: t('sync_key'),
-                        hintText: 'dalideck-test-1'),
-                  ),
+              const SizedBox(height: 6),
+              Text(t('waiting_for_key'),
+                  style: const TextStyle(color: Colors.orange)),
+            ],
+            const Divider(height: 28),
+            // ---- TYPE side ----
+            Text(t('type_key').toUpperCase(),
+                style: const TextStyle(color: kAccent, fontSize: 11, letterSpacing: 1.2)),
+            const SizedBox(height: 6),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _keyC,
+                  decoration: InputDecoration(
+                      labelText: t('sync_key'), hintText: 'abcdef12'),
                 ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: () => sync.connect(_keyC.text),
-                  child: Text(t('connect')),
-                ),
-              ])
-            else
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('key: $masked',
-                    style: const TextStyle(color: kMuted, fontFamily: 'monospace')),
-                const SizedBox(height: 8),
-                Row(children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      sync.startPullTimer();
-                      sync.syncNow();
-                    },
-                    icon: const Icon(Icons.sync, size: 16),
-                    label: Text(t('sync_now')),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => sync.disconnect(),
-                    icon: const Icon(Icons.link_off, size: 16),
-                    label: Text(t('disconnect')),
-                  ),
-                ]),
-              ]),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: kAccent),
+                onPressed: () {
+                  widget.sync.connect(_keyC.text);
+                  setState(() => _generated = null);
+                },
+                child: Text(t('connect')),
+              ),
+            ]),
           ],
-        ),
+        ]),
       ),
     );
   }

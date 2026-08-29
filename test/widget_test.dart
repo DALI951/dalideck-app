@@ -15,6 +15,14 @@ void main() {
     expect(a.length, greaterThan(3));
   });
 
+  test('generateKey makes 8 clean chars', () {
+    for (var i = 0; i < 50; i++) {
+      final k = generateKey();
+      expect(k.length, 8);
+      expect(RegExp(r'^[a-z2-9]{8}$').hasMatch(k), isTrue);
+    }
+  });
+
   test('jsonSer is deterministic and sorted', () {
     final m = {'b': 1, 'a': [3, 1, 2], 'c': 'x"y'};
     final s1 = jsonSer(m);

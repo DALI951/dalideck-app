@@ -89,8 +89,17 @@ class _TimetableTabState extends State<TimetableTab> {
               ? const Center(child: Text('—', style: TextStyle(color: kMuted)))
               : ListView.builder(
                   padding: const EdgeInsets.all(12),
-                  itemCount: s.periods.length,
+                  itemCount: s.periods.length + 1,
                   itemBuilder: (context, i) {
+                    if (i == s.periods.length) {
+                      return Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.add, color: kMuted),
+                          title: Text(t('add_period')),
+                          onTap: () => _addPeriod(context),
+                        ),
+                      );
+                    }
                     final p = s.periods[i];
                     final subId = s.cells['${p.id}:$_wd'];
                     final name = s.subjectName(subId);
@@ -121,6 +130,26 @@ class _TimetableTabState extends State<TimetableTab> {
         ),
       ],
     );
+  }
+
+  Future<void> _addPeriod(BuildContext context) async {
+    final s = widget.store.s;
+    final v = await showEntryDialog(
+      context,
+      t('add_period'),
+      [
+        EntryField('label', label: t('period_label'), initial: 'P${s.periods.length + 1}'),
+        EntryField('time', label: t('period_time'), initial: '15:00'),
+      ],
+    );
+    if (v == null) return;
+    final label = v['label'] as String? ?? '';
+    if (label.isEmpty) return;
+    widget.store.mutate(() {
+      s.periods.add(Period(uid())
+        ..label = label
+        ..time = v['time'] as String? ?? '');
+    });
   }
 }
 

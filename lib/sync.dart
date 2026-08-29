@@ -23,6 +23,19 @@ Future<void> _delPref(String key) async {
 
 enum SyncStateVal { off, syncing, ok, err }
 
+// Short, typable sync key — 8 chars, no confusing glyphs.
+String generateKey() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  final rnd = DateTime.now().millisecondsSinceEpoch;
+  var seed = rnd;
+  final out = StringBuffer();
+  for (var i = 0; i < 8; i++) {
+    seed = (seed * 31 + 7) & 0x7fffffff;
+    out.write(chars[seed % chars.length]);
+  }
+  return out.toString();
+}
+
 class SyncEngine extends ChangeNotifier {
   final Store store;
   SyncStateVal state = SyncStateVal.off;
@@ -66,13 +79,14 @@ class SyncEngine extends ChangeNotifier {
   }
 
   void connect(String key) {
-    if (key.trim().length < 6) {
+    final clean = key.trim().replaceAll(RegExp(r'[\s\-_]'), '');
+    if (clean.length < 6) {
       lastErr = 'Key too short (min 6 chars)';
       state = SyncStateVal.err;
       notifyListeners();
       return;
     }
-    apiKey = key.trim();
+    apiKey = clean;
     _setPref(prefsSyncKey, apiKey!);
     _ss = {
       'v': 1, 'baseRev': 0, 'updatedAt': 0, 'seen': {}, 'local': {}

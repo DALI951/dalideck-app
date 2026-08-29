@@ -36,6 +36,11 @@ jobs:
         run: flutter create --platforms android --org ai.dalideck --project-name dalideck .
         working-directory: .
 
+      - name: Regenerate app icon into Android mipmaps
+        run: |
+          pip install pillow --quiet
+          python dev/make_icons.py
+
       - name: Install deps
         run: flutter pub get
 

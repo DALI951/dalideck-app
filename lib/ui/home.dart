@@ -4,6 +4,7 @@ import '../i18n.dart';
 import '../models.dart';
 import '../sync.dart';
 import 'money.dart';
+import 'more.dart';
 import 'school.dart';
 import 'settings.dart';
 import 'today.dart';
@@ -31,6 +32,7 @@ class _HomeShellState extends State<HomeShell> {
           TodayView(store: widget.store),
           SchoolView(store: widget.store, sync: widget.sync),
           MoneyView(store: widget.store),
+          MoreView(store: widget.store),
           SettingsView(store: widget.store, sync: widget.sync),
         ];
         return Scaffold(
@@ -51,6 +53,10 @@ class _HomeShellState extends State<HomeShell> {
                   icon: const Icon(Icons.account_balance_wallet_outlined),
                   selectedIcon: const Icon(Icons.account_balance_wallet),
                   label: t('money')),
+              NavigationDestination(
+                  icon: const Icon(Icons.grid_view_outlined),
+                  selectedIcon: const Icon(Icons.grid_view),
+                  label: t('more')),
               NavigationDestination(
                   icon: const Icon(Icons.settings_outlined),
                   selectedIcon: const Icon(Icons.settings),
