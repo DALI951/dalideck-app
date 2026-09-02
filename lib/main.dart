@@ -77,16 +77,22 @@ class DalideckApp extends StatefulWidget {
 }
 
 class _DalideckAppState extends State<DalideckApp> {
+  Timer? _updateTimer;
+
   @override
   void initState() {
     super.initState();
     widget.sync.load();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        UpdateService().checkForUpdate(context);
-      });
+    _updateTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      UpdateService().checkForUpdate(context);
     });
+  }
+
+  @override
+  void dispose() {
+    _updateTimer?.cancel();
+    super.dispose();
   }
 
   @override
