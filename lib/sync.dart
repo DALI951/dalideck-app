@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,12 +40,10 @@ enum SyncStateVal { off, syncing, ok, err }
 // Short, typable sync key — 8 chars, no confusing glyphs.
 String generateKey() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
-  final rnd = DateTime.now().millisecondsSinceEpoch;
-  var seed = rnd;
+  final rnd = Random.secure();
   final out = StringBuffer();
   for (var i = 0; i < 8; i++) {
-    seed = (seed * 31 + 7) & 0x7fffffff;
-    out.write(chars[seed % chars.length]);
+    out.write(chars[rnd.nextInt(chars.length)]);
   }
   return out.toString();
 }

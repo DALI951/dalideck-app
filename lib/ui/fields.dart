@@ -110,6 +110,7 @@ class _EntryDialogState extends State<_EntryDialog> {
               padding: const EdgeInsets.only(bottom: 12),
               child: TextField(
                 controller: _c[f.name],
+                maxLength: 500,
                 keyboardType: f.type == 'number'
                     ? const TextInputType.numberWithOptions(decimal: true)
                     : TextInputType.text,

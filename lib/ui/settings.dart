@@ -311,8 +311,18 @@ class SettingsView extends StatelessWidget {
       ),
     );
     if (v == null || v.isEmpty) return;
+    if (v.length > 500000) {
+      showSnack(context, 'Import too large');
+      return;
+    }
     try {
-      final imported = AppState.fromJson(jsonDecode(v) as Map<String, dynamic>);
+      final decoded = jsonDecode(v);
+      if (decoded is! Map<String, dynamic> ||
+          !(decoded.containsKey('v') || decoded.containsKey('subjects'))) {
+        showSnack(context, 'Invalid import structure');
+        return;
+      }
+      final imported = AppState.fromJson(decoded);
       store.mutate(() => store.s = imported);
       sync.disconnect();
       showSnack(context, t('ok'));
