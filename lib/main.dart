@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'models.dart';
 import 'store.dart';
 import 'sync.dart';
 import 'i18n.dart';
-import 'services/update_service.dart';
 import 'ui/home.dart';
 
 const _bg = Color(0xFF0B0D10);
@@ -77,22 +75,10 @@ class DalideckApp extends StatefulWidget {
 }
 
 class _DalideckAppState extends State<DalideckApp> {
-  Timer? _updateTimer;
-
   @override
   void initState() {
     super.initState();
     widget.sync.load();
-    _updateTimer = Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      UpdateService().checkForUpdate(context);
-    });
-  }
-
-  @override
-  void dispose() {
-    _updateTimer?.cancel();
-    super.dispose();
   }
 
   @override

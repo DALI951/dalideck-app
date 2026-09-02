@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../i18n.dart';
 import '../models.dart';
+import '../services/update_service.dart';
 import '../sync.dart';
 import 'money.dart';
 import 'more.dart';
@@ -22,6 +24,24 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
+  Timer? _updateTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateTimer = Timer(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        UpdateService().checkForUpdate(context);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _updateTimer?.cancel();
+    super.dispose();
+  }
 
   // Pages rebuild ONLY from their own notifiers; the shell/chrome stays
   // stable so a sync tick or a single edit never re-lays-out the whole app.
