@@ -67,28 +67,31 @@ class DalideckApp extends StatefulWidget {
 }
 
 class _DalideckAppState extends State<DalideckApp> {
-  String _lang = 'en';
-
   @override
   void initState() {
     super.initState();
-    _lang = widget.store.s.settings.lang == 'ar' ? 'ar' : 'en';
     widget.sync.load();
   }
 
   @override
   Widget build(BuildContext context) {
-    final ar = _lang == 'ar';
-    L.lang = _lang;
-    return MaterialApp(
-      title: 'DaliDeck',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
-      builder: (context, child) => Directionality(
-        textDirection: ar ? TextDirection.rtl : TextDirection.ltr,
-        child: child ?? const SizedBox.shrink(),
-      ),
-      home: HomeShell(store: widget.store, sync: widget.sync, lang: _lang),
+    return ListenableBuilder(
+      listenable: widget.store,
+      builder: (context, _) {
+        final lang = widget.store.s.settings.lang == 'ar' ? 'ar' : 'en';
+        L.lang = lang;
+        final ar = lang == 'ar';
+        return MaterialApp(
+          title: 'DaliDeck',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.dark(),
+          builder: (context, child) => Directionality(
+            textDirection: ar ? TextDirection.rtl : TextDirection.ltr,
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: HomeShell(store: widget.store, sync: widget.sync, lang: lang),
+        );
+      },
     );
   }
 }

@@ -505,9 +505,12 @@ class Store extends ChangeNotifier {
   Store(this.s);
 
   void mutate(void Function() fn) {
-    fn();
-    s.repair();
-    notifyListeners();
+    try {
+      fn();
+      s.repair();
+    } finally {
+      notifyListeners();
+    }
     saveRequested?.call();
     syncRequested?.call();
   }

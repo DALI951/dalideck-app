@@ -82,9 +82,9 @@ class HabitsView extends StatelessWidget {
                                   onTap: () => store.mutate(() {
                                     final d = ws[i];
                                     if (h.days.contains(d)) {
-                                      h.days.remove(d);
+                                      h.days = List<String>.from(h.days)..remove(d);
                                     } else {
-                                      h.days.add(d);
+                                      h.days = [...h.days, d];
                                     }
                                   }),
                                   child: Container(

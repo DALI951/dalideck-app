@@ -85,7 +85,7 @@ class _EntryDialogState extends State<_EntryDialog> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: DropdownButtonFormField<String>(
-                  initialValue: _sel[f.name],
+                  value: _sel[f.name],
                   decoration: InputDecoration(labelText: f.label),
                   items: f.options
                       .map((o) => DropdownMenuItem(value: o, child: Text(o)))

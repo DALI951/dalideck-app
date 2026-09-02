@@ -68,23 +68,28 @@ class QuranView extends StatelessWidget {
               for (var j = 1; j <= 30; j++)
                 InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  onTap: () => store.mutate(() {
-                    final nl = List<int>.from(cur);
-                    if (nl.contains(j)) {
-                      nl.remove(j);
-                      log.remove('$j');
-                    } else {
-                      nl.add(j);
-                      log['$j'] = tod;
-                    }
-                    q['cur'] = nl;
-                    if (nl.length >= 30) {
-                      q['khitma'] = (q['khitma'] as num? ?? 0).toInt() + 1;
-                      q['cur'] = <int>[];
-                      q['log'] = <String, dynamic>{};
-                      showSnack(context, '${t('khitma')} 🎉');
-                    }
-                  }),
+                  onTap: () {
+                    var khitmaDone = false;
+                    store.mutate(() {
+                      final nl = List<int>.from(cur);
+                      if (nl.contains(j)) {
+                        nl.remove(j);
+                        log.remove('$j');
+                      } else {
+                        nl.add(j);
+                        log['$j'] = tod;
+                      }
+                      s.quran['cur'] = nl;
+                      s.quran['log'] = Map<String, dynamic>.from(log);
+                      if (nl.length >= 30) {
+                        khitmaDone = true;
+                        s.quran['khitma'] = (s.quran['khitma'] as num? ?? 0).toInt() + 1;
+                        s.quran['cur'] = <int>[];
+                        s.quran['log'] = <String, dynamic>{};
+                      }
+                    });
+                    if (khitmaDone) showSnack(context, '${t('khitma')} 🎉');
+                  },
                   child: Container(
                     decoration: BoxDecoration(
                       color: cur.contains(j) ? kAccent.withValues(alpha: 0.28) : kPanel,
