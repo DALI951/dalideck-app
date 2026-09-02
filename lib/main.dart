@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'models.dart';
 import 'store.dart';
 import 'sync.dart';
 import 'i18n.dart';
+import 'services/update_service.dart';
 import 'ui/home.dart';
 
 const _bg = Color(0xFF0B0D10);
@@ -50,11 +52,19 @@ const kPanel = _panel;
 const kBg = _bg;
 
 void main() async {
+  FlutterError.onError = (details) {
+    debugPrint('Flutter error: ${details.exceptionAsString()}\n${details.stack}');
+  };
+
   WidgetsFlutterBinding.ensureInitialized();
-  final store = await loadStore();
-  final sync = SyncEngine(store);
-  store.syncRequested = sync.markSaved;
-  runApp(DalideckApp(store: store, sync: sync));
+  runZonedGuarded(() async {
+    final store = await loadStore();
+    final sync = SyncEngine(store);
+    store.syncRequested = sync.markSaved;
+    runApp(DalideckApp(store: store, sync: sync));
+  }, (error, stack) {
+    debugPrint('Unhandled error: $error\n$stack');
+  });
 }
 
 class DalideckApp extends StatefulWidget {
@@ -71,6 +81,12 @@ class _DalideckAppState extends State<DalideckApp> {
   void initState() {
     super.initState();
     widget.sync.load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        UpdateService().checkForUpdate(context);
+      });
+    });
   }
 
   @override

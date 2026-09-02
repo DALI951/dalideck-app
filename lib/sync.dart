@@ -9,16 +9,29 @@ import 'store.dart';
 const String syncEnd = 'https://modali.powerpme.com/dalideck-sync/api.php';
 
 Future<String?> _getPref(String key) async {
-  final p = await SharedPreferences.getInstance();
-  return p.getString(key);
+  try {
+    final p = await SharedPreferences.getInstance();
+    return p.getString(key);
+  } catch (e) {
+    debugPrint('SharedPreferences get failed: $e');
+    return null;
+  }
 }
 Future<void> _setPref(String key, String value) async {
-  final p = await SharedPreferences.getInstance();
-  await p.setString(key, value);
+  try {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(key, value);
+  } catch (e) {
+    debugPrint('SharedPreferences set failed: $e');
+  }
 }
 Future<void> _delPref(String key) async {
-  final p = await SharedPreferences.getInstance();
-  await p.remove(key);
+  try {
+    final p = await SharedPreferences.getInstance();
+    await p.remove(key);
+  } catch (e) {
+    debugPrint('SharedPreferences remove failed: $e');
+  }
 }
 
 enum SyncStateVal { off, syncing, ok, err }
