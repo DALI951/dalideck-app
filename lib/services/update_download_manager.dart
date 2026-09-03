@@ -148,7 +148,7 @@ class UpdateDownloadManager extends ChangeNotifier {
   }
 
   Future<void> _ensureWorkerRunning(
-    ({String state, double? progress, String? path, String? version, String? url}) s, {
+    ({String state, double? progress, double? speed, String? path, String? version, String? url, String? error}) s, {
     String? url,
     String? version,
   }) async {
@@ -167,7 +167,7 @@ class UpdateDownloadManager extends ChangeNotifier {
   }
 
   String? _recoverDone(
-      ({String state, double? progress, String? path, String? version, String? url}) s) {
+      ({String state, double? progress, double? speed, String? path, String? version, String? url, String? error}) s) {
     final p = s.progress;
     final path = s.path;
     if (p == null || p < 0.99 || path == null) return null;
