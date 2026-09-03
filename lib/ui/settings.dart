@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../i18n.dart';
 import '../main.dart';
 import '../models.dart';
+import '../services/update_service.dart';
 import '../sync.dart';
 import 'fields.dart';
 
@@ -150,6 +151,15 @@ class SettingsView extends StatelessWidget {
           ),
           _Section(t('sync')),
           _SyncCard(store: store, sync: sync),
+          _Section('ABOUT'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.system_update, color: kMuted),
+              title: const Text('Check for Updates'),
+              subtitle: Text('v$kAppVersion'),
+              onTap: () => UpdateService().checkForUpdate(context, force: true),
+            ),
+          ),
           _Section(t('export_json')),
           Card(
             child: ListTile(
