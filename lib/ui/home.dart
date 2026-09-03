@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../i18n.dart';
 import '../models.dart';
+import '../services/update_download_manager.dart';
 import '../services/update_service.dart';
 import '../sync.dart';
+import '../widgets/update_banner.dart';
 import 'money.dart';
 import 'more.dart';
 import 'school.dart';
@@ -15,8 +17,14 @@ class HomeShell extends StatefulWidget {
   final Store store;
   final SyncEngine sync;
   final String lang;
-  const HomeShell(
-      {super.key, required this.store, required this.sync, required this.lang});
+  final UpdateDownloadManager updateManager;
+  const HomeShell({
+    super.key,
+    required this.store,
+    required this.sync,
+    required this.lang,
+    required this.updateManager,
+  });
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -43,8 +51,6 @@ class _HomeShellState extends State<HomeShell> {
     super.dispose();
   }
 
-  // Pages rebuild ONLY from their own notifiers; the shell/chrome stays
-  // stable so a sync tick or a single edit never re-lays-out the whole app.
   ListenableBuilder _listen(Listenable listenable, Widget Function() build) {
     return ListenableBuilder(listenable: listenable, builder: (_, __) => build());
   }
@@ -61,7 +67,14 @@ class _HomeShellState extends State<HomeShell> {
           () => SettingsView(store: store, sync: widget.sync)),
     ];
     return Scaffold(
-      body: IndexedStack(index: _tab, children: pages),
+      body: Column(
+        children: [
+          UpdateBanner(manager: widget.updateManager),
+          Expanded(
+            child: IndexedStack(index: _tab, children: pages),
+          ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),

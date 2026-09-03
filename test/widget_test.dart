@@ -5,6 +5,7 @@ import 'package:dalideck/models.dart';
 import 'package:dalideck/store.dart';
 import 'package:dalideck/sync.dart';
 import 'package:dalideck/ui/school.dart';
+import 'package:dalideck/services/update_download_manager.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -62,7 +63,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final store = await loadStore();
     final sync = SyncEngine(store);
-    await tester.pumpWidget(DalideckApp(store: store, sync: sync));
+    await tester.pumpWidget(DalideckApp(store: store, sync: sync, updateManager: UpdateDownloadManager()));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('Today'), findsWidgets);

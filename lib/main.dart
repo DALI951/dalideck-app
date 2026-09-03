@@ -1,9 +1,14 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:workmanager/workmanager.dart';
+
 import 'models.dart';
 import 'store.dart';
 import 'sync.dart';
 import 'i18n.dart';
+import 'services/background_worker.dart';
+import 'services/update_download_manager.dart';
 import 'ui/home.dart';
 
 const _bg = Color(0xFF0B0D10);
@@ -56,11 +61,24 @@ void main() async {
   };
 
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb) {
+    await Workmanager().initialize(callbackDispatcher);
+  }
+
   runZonedGuarded(() async {
     final store = await loadStore();
     final sync = SyncEngine(store);
     store.syncRequested = sync.markSaved;
-    runApp(DalideckApp(store: store, sync: sync));
+
+    final updateManager = UpdateDownloadManager();
+    await updateManager.restoreState();
+
+    runApp(DalideckApp(
+      store: store,
+      sync: sync,
+      updateManager: updateManager,
+    ));
   }, (error, stack) {
     debugPrint('Unhandled error: $error\n$stack');
   });
@@ -69,7 +87,13 @@ void main() async {
 class DalideckApp extends StatefulWidget {
   final Store store;
   final SyncEngine sync;
-  const DalideckApp({super.key, required this.store, required this.sync});
+  final UpdateDownloadManager updateManager;
+  const DalideckApp({
+    super.key,
+    required this.store,
+    required this.sync,
+    required this.updateManager,
+  });
 
   @override
   State<DalideckApp> createState() => _DalideckAppState();
@@ -98,7 +122,12 @@ class _DalideckAppState extends State<DalideckApp> {
             textDirection: ar ? TextDirection.rtl : TextDirection.ltr,
             child: child ?? const SizedBox.shrink(),
           ),
-          home: HomeShell(store: widget.store, sync: widget.sync, lang: lang),
+          home: HomeShell(
+            store: widget.store,
+            sync: widget.sync,
+            lang: lang,
+            updateManager: widget.updateManager,
+          ),
         );
       },
     );
