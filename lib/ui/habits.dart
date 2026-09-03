@@ -82,7 +82,7 @@ class _WeeklyMatrix extends StatelessWidget {
     final ws = weekDays();
     final today = todayIdx();
     final cols = HabitsView._dayKeys.map((k) => t(k)).toList();
-    final nameW = 84.0;
+    const nameW = 84.0;
 
     if (s.habits.isEmpty) return const SizedBox.shrink();
 
@@ -132,8 +132,7 @@ class _WeeklyMatrix extends StatelessWidget {
     );
   }
 
-  Widget _matrixHabitRow(
-      Habit h, List<String> ws, int today, double nameW) {
+  Widget _matrixHabitRow(Habit h, List<String> ws, int today, double nameW) {
     return Row(
       children: [
         SizedBox(
@@ -148,7 +147,8 @@ class _WeeklyMatrix extends StatelessWidget {
         for (var i = 0; i < 7; i++)
           Expanded(
             child: Center(
-              child: _matrixCell(done: h.days.contains(ws[i]), isToday: i == today),
+              child: _matrixCell(
+                  done: h.days.contains(ws[i]), isToday: i == today),
             ),
           ),
       ],
@@ -163,18 +163,16 @@ class _WeeklyMatrix extends StatelessWidget {
         shape: BoxShape.circle,
         color: done
             ? _red
-            : (isToday ? _red.withValues(alpha: 0.15) : kPanel),
+            : (isToday ? _red.withOpacity(0.15) : kPanel),
         border: Border.all(
           color: isToday
-              ? (done ? _red : _red.withValues(alpha: 0.6))
+              ? (done ? _red : _red.withOpacity(0.6))
               : kBg,
           width: isToday ? 2 : 1,
         ),
       ),
       alignment: Alignment.center,
-      child: done
-          ? const Icon(Icons.check, size: 16, color: Colors.white)
-          : null,
+      child: done ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
     );
   }
 }
@@ -222,7 +220,6 @@ class _HabitCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            // day labels + toggles side by side, right aligned to edit/delete row
             Row(
               children: [
                 Expanded(
@@ -261,7 +258,8 @@ class _HabitCard extends StatelessWidget {
                                     final d = ws[i];
                                     if (habit.days.contains(d)) {
                                       habit.days =
-                                          List<String>.from(habit.days)..remove(d);
+                                          List<String>.from(habit.days)
+                                            ..remove(d);
                                     } else {
                                       habit.days = [...habit.days, d];
                                     }
@@ -299,7 +297,6 @@ class _HabitCard extends StatelessWidget {
   }
 
   Future<void> _editHabit(BuildContext context) async {
-    final s = store.s;
     final v = await showEntryDialog(
       context,
       t('add'),
@@ -336,18 +333,16 @@ class _ToggleCell extends StatelessWidget {
           shape: BoxShape.circle,
           color: done
               ? _red
-              : (isToday ? _red.withValues(alpha: 0.12) : kBg),
+              : (isToday ? _red.withOpacity(0.12) : kBg),
           border: Border.all(
             color: isToday
-                ? (done ? _red : _red.withValues(alpha: 0.6))
+                ? (done ? _red : _red.withOpacity(0.6))
                 : kBg,
             width: isToday ? 2 : 1,
           ),
         ),
         alignment: Alignment.center,
-        child: done
-            ? const Icon(Icons.check, size: 18, color: Colors.white)
-            : null,
+        child: done ? const Icon(Icons.check, size: 18, color: Colors.white) : null,
       ),
     );
   }
@@ -362,9 +357,9 @@ class _StreakPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _red.withValues(alpha: 0.15),
+        color: _red.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _red.withValues(alpha: 0.5)),
+        border: Border.all(color: _red.withOpacity(0.5)),
       ),
       child: Text(
         '🔥 ${streak}d',
@@ -401,7 +396,7 @@ class _EmptyState extends StatelessWidget {
             style: FilledButton.styleFrom(backgroundColor: _red),
             onPressed: onAdd,
             icon: const Icon(Icons.add),
-            label: Text('Add your first habit'),
+            label: const Text('Add your first habit'),
           ),
         ],
       ),
