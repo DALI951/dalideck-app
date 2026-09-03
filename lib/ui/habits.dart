@@ -340,6 +340,9 @@ class _ToggleCell extends StatelessWidget {
                 : kBg,
             width: isToday ? 2 : 1,
           ),
+          boxShadow: isToday
+              ? [BoxShadow(color: _red.withOpacity(0.4), blurRadius: 6, spreadRadius: 1)]
+              : null,
         ),
         alignment: Alignment.center,
         child: done ? const Icon(Icons.check, size: 18, color: Colors.white) : null,
@@ -357,14 +360,13 @@ class _StreakPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _red.withOpacity(0.15),
+        color: _red,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _red.withOpacity(0.5)),
       ),
       child: Text(
         '🔥 ${streak}d',
         style: const TextStyle(
-          color: _red,
+          color: Colors.white,
           fontSize: 12,
           fontWeight: FontWeight.w800,
         ),
@@ -383,11 +385,11 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Column(
         children: [
-          const Icon(Icons.done_all, size: 56, color: kMuted),
+          const Icon(Icons.local_fire_department, size: 56, color: _red),
           const SizedBox(height: 16),
-          Text(t('habits'),
+          const Text('No habits yet',
               style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Text(t('empty_tasks'),
               style: const TextStyle(color: kMuted), textAlign: TextAlign.center),
