@@ -1,6 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:open_file/open_file.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'models.dart';
@@ -10,6 +15,9 @@ import 'i18n.dart';
 import 'services/background_worker.dart';
 import 'services/update_download_manager.dart';
 import 'ui/home.dart';
+
+FlutterLocalNotificationsPlugin _notificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
 const _bg = Color(0xFF0B0D10);
 const _panel = Color(0xFF15181E);
@@ -64,6 +72,24 @@ void main() async {
 
   if (!kIsWeb) {
     await Workmanager().initialize(callbackDispatcher);
+  }
+
+  if (!kIsWeb) {
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    await _notificationsPlugin.initialize(
+      const InitializationSettings(android: androidSettings),
+      onDidReceiveNotificationResponse: (details) async {
+        try {
+          final file = File(await updateStateFilePath());
+          if (!file.existsSync()) return;
+          final map =
+              json.decode(file.readAsStringSync()) as Map<String, dynamic>;
+          final path = map['path'] as String?;
+          if (path != null && path.isNotEmpty) OpenFile.open(path);
+        } catch (_) {}
+      },
+    );
   }
 
   runZonedGuarded(() async {

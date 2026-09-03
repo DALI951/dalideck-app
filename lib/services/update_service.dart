@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'update_download_manager.dart';
 
-const String kAppVersion = '0.2.6';
+const String kAppVersion = '0.2.7';
 
 class UpdateService {
   static const _repo = 'DALI951/dalideck-app';

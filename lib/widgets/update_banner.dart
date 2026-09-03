@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../services/update_download_manager.dart';
 
+String _fmtSpeed(double? bps) {
+  if (bps == null || bps <= 0) return '';
+  if (bps >= 1048576) return '${(bps / 1048576).toStringAsFixed(1)} MB/s';
+  if (bps >= 1024) return '${(bps / 1024).toStringAsFixed(0)} KB/s';
+  return '${bps.toStringAsFixed(0)} B/s';
+}
+
 class UpdateBanner extends StatelessWidget {
   final UpdateDownloadManager manager;
   const UpdateBanner({super.key, required this.manager});
@@ -29,7 +36,7 @@ class UpdateBanner extends StatelessWidget {
                       Expanded(
                         child: Text(
                           manager.progress != null
-                              ? 'Downloading update ${(manager.progress! * 100).toInt()}%'
+                              ? 'Downloading update ${(manager.progress! * 100).toInt()}%${_fmtSpeed(manager.currentSpeed).isNotEmpty ? ' · ${_fmtSpeed(manager.currentSpeed)}' : ''}'
                               : 'Downloading update…',
                           style: TextStyle(
                               fontSize: 13, color: cs.onSurfaceVariant),
