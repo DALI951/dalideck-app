@@ -129,6 +129,9 @@ class UpdateDownloadManager extends ChangeNotifier {
       _startPolling();
       return;
     }
+    if (_version == version && (_state == UpdateDownloadState.ready || _state == UpdateDownloadState.downloading)) {
+      return;
+    }
     _url = url;
     _version = version;
     _state = UpdateDownloadState.downloading;

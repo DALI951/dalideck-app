@@ -33,6 +33,11 @@ class _PinScreenState extends State<PinScreen>
     );
     LocalAuthentication().canCheckBiometrics.then((v) {
       if (mounted) setState(() => _biometricAvailable = v);
+      if (v) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && _biometricAvailable) _tryBiometric();
+        });
+      }
     });
   }
 
@@ -101,9 +106,10 @@ class _PinScreenState extends State<PinScreen>
       localizedReason: t('enter_pin'),
       options: const AuthenticationOptions(stickyAuth: true),
     );
+    if (!mounted) return;
     if (didAuth) {
       widget.onUnlocked();
-      if (mounted) Navigator.of(context).pop();
+      Navigator.of(context).pop();
     } else {
       setState(() => _error = t('biometric_failed'));
     }
@@ -148,6 +154,17 @@ class _PinScreenState extends State<PinScreen>
                 }),
               ),
             ),
+            const SizedBox(height: 16),
+            if (_biometricAvailable) ...[
+              IconButton(
+                onPressed: _locked ? null : _tryBiometric,
+                icon: const Icon(Icons.fingerprint, size: 48, color: kAccent),
+                tooltip: t('use_biometric'),
+              ),
+              const SizedBox(height: 4),
+              Text('or use fingerprint',
+                  style: const TextStyle(color: kMuted, fontSize: 12)),
+            ],
             const SizedBox(height: 12),
             if (_error != null)
               Text(_error!, style: const TextStyle(color: kAccent, fontSize: 13))
@@ -155,15 +172,6 @@ class _PinScreenState extends State<PinScreen>
               Text('${t('too_many_attempts')} $_lockoutSecs',
                   style: const TextStyle(color: kAccent, fontSize: 13)),
             const Spacer(),
-            if (_biometricAvailable) ...[
-              const SizedBox(height: 8),
-              IconButton(
-                onPressed: _locked ? null : _tryBiometric,
-                icon: const Icon(Icons.fingerprint, size: 36, color: kAccent),
-                tooltip: t('use_biometric'),
-              ),
-              const SizedBox(height: 4),
-            ],
             _buildNumpad(),
             const SizedBox(height: 24),
           ],

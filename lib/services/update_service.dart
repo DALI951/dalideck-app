@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'update_download_manager.dart';
-
 class AppVersion {
   static String _cached = '0.0.0';
   static String get current => _cached;
@@ -30,22 +28,22 @@ class UpdateService {
   factory UpdateService() => _instance;
   UpdateService._();
 
-  Future<bool> checkForUpdate(BuildContext context,
+  Future<UpdateInfo?> checkForUpdate(BuildContext context,
       {bool force = false}) async {
-    if (kIsWeb) return false;
+    if (kIsWeb) return null;
 
     SharedPreferences prefs;
     try {
       prefs = await SharedPreferences.getInstance();
     } catch (e) {
       debugPrint('SharedPreferences init failed in update check: $e');
-      return false;
+      return null;
     }
 
     if (!force) {
       final lastCheck = prefs.getInt(_lastCheckKey) ?? 0;
       final now = DateTime.now().millisecondsSinceEpoch;
-      if (now - lastCheck < 30 * 60 * 1000) return false;
+      if (now - lastCheck < 30 * 60 * 1000) return null;
     }
 
     try {
@@ -62,15 +60,16 @@ class UpdateService {
             orElse: () => null,
           );
 
-      if (apkAsset == null) return false;
+      if (apkAsset == null) return null;
 
       final downloadUrl = apkAsset['browser_download_url'] as String;
       final latestVersion = tagName.replaceFirst('v', '');
+      final releaseNotes = data['body'] as String? ?? '';
 
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
 
-      if (_compareVersions(latestVersion, currentVersion) <= 0) return false;
+      if (_compareVersions(latestVersion, currentVersion) <= 0) return null;
 
       try {
         await prefs.setInt(_lastCheckKey, DateTime.now().millisecondsSinceEpoch);
@@ -80,18 +79,16 @@ class UpdateService {
 
       if (!force) {
         final dismissed = prefs.getString(_dismissedKey);
-        if (dismissed == latestVersion) return false;
+        if (dismissed == latestVersion) return null;
       }
 
-      if (!context.mounted) return false;
-
-      UpdateDownloadManager().start(downloadUrl, latestVersion);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Update downloading…')),
+      return UpdateInfo(
+        version: latestVersion,
+        downloadUrl: downloadUrl,
+        releaseNotes: releaseNotes,
       );
-      return true;
     } catch (_) {
-      return false;
+      return null;
     }
   }
 
@@ -106,4 +103,11 @@ class UpdateService {
     }
     return 0;
   }
+}
+
+class UpdateInfo {
+  final String version;
+  final String downloadUrl;
+  final String releaseNotes;
+  UpdateInfo({required this.version, required this.downloadUrl, required this.releaseNotes});
 }

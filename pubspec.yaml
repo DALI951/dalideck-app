@@ -1,7 +1,7 @@
 name: dalideck
 description: DaliDeck for Android — syncs two-way with the DaliDeck website via a self-hosted API.
 publish_to: 'none'
-version: 0.3.1+13
+version: 0.3.2+14
 
 environment:
   sdk: ^3.5.0

@@ -6,17 +6,26 @@ import '../i18n.dart';
 import '../main.dart';
 import '../models.dart';
 import '../services/pin_service.dart';
+import '../services/update_download_manager.dart';
 import '../services/update_service.dart';
 import '../sync.dart';
 import 'fields.dart';
 
-class SettingsView extends StatelessWidget {
+class SettingsView extends StatefulWidget {
   final Store store;
   final SyncEngine sync;
   const SettingsView({super.key, required this.store, required this.sync});
 
   @override
+  State<SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends State<SettingsView> {
+  Store get store => widget.store;
+
+  @override
   Widget build(BuildContext context) {
+    final sync = widget.sync;
     final s = store.s;
     return Scaffold(
       appBar: AppBar(title: Text(t('settings'))),
@@ -161,7 +170,7 @@ class SettingsView extends StatelessWidget {
               leading: const Icon(Icons.system_update, color: kMuted),
               title: const Text('Check for Updates'),
               subtitle: Text('v${AppVersion.current}'),
-              onTap: () => UpdateService().checkForUpdate(context, force: true),
+              onTap: () => _checkForUpdate(context),
             ),
           ),
           _Section(t('export_json')),
@@ -188,6 +197,45 @@ class SettingsView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _checkForUpdate(BuildContext context) async {
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+    final info = await UpdateService().checkForUpdate(context, force: true);
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+
+    if (info == null) {
+      showDialog(context: context, builder: (_) => AlertDialog(
+        icon: const Icon(Icons.check_circle, color: Colors.green, size: 48),
+        title: Text(t('up_to_date')),
+        content: Text('v${AppVersion.current}'),
+        actions: [FilledButton(onPressed: () => Navigator.pop(context), child: Text(t('ok')))],
+      ));
+    } else {
+      showDialog(context: context, builder: (_) => AlertDialog(
+        icon: const Icon(Icons.system_update, size: 48),
+        title: Text('${t('update_available')} v${info.version}'),
+        content: SingleChildScrollView(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Text(t('changes'), style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(info.releaseNotes.isNotEmpty ? info.releaseNotes : 'No release notes'),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(t('cancel'))),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              UpdateDownloadManager().start(info.downloadUrl, info.version);
+              showSnack(context, t('update_downloading'));
+            },
+            child: Text(t('download')),
+          ),
+        ],
+      ));
+    }
   }
 
   Widget _privacyLockSection(BuildContext context) {
@@ -351,24 +399,33 @@ class SettingsView extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.arrow_upward, size: 18),
                   onPressed: i > 0 && !pinned.contains(tl[i - 1]['id'])
-                      ? () => store.mutate(() {
-                            final item = tl.removeAt(i);
-                            tl.insert(i - 1, item);
-                          })
+                      ? () {
+                            store.mutate(() {
+                              final item = tl.removeAt(i);
+                              tl.insert(i - 1, item);
+                            });
+                            setState(() {});
+                          }
                       : null,
                 ),
                 IconButton(
                   icon: const Icon(Icons.arrow_downward, size: 18),
                   onPressed: i < tl.length - 1 && !pinned.contains(tl[i + 1]['id'])
-                      ? () => store.mutate(() {
-                            final item = tl.removeAt(i);
-                            tl.insert(i + 1, item);
-                          })
+                      ? () {
+                            store.mutate(() {
+                              final item = tl.removeAt(i);
+                              tl.insert(i + 1, item);
+                            });
+                            setState(() {});
+                          }
                       : null,
                 ),
                 Switch(
                   value: tl[i]['visible'] == true,
-                  onChanged: (v) => store.mutate(() => tl[i]['visible'] = v),
+                  onChanged: (v) {
+                    store.mutate(() => tl[i]['visible'] = v);
+                    setState(() {});
+                  },
                 ),
               ],
             ]),
@@ -543,7 +600,7 @@ class SettingsView extends StatelessWidget {
       }
       final imported = AppState.fromJson(decoded);
       store.mutate(() => store.s = imported);
-      sync.disconnect();
+      widget.sync.disconnect();
       showSnack(context, t('ok'));
     } catch (_) {
       showSnack(context, t('sync_error'));

@@ -171,6 +171,11 @@ class L {
     'move_up': ['Move up', 'تحريك لأعلى'],
     'move_down': ['Move down', 'تحريك لأسفل'],
     'pinned_tab': ['Pinned', 'ثابت'],
+    'up_to_date': ['You\'re up to date', 'أنت تستخدم أحدث إصدار'],
+    'update_available': ['Update available', 'تحديث متاح'],
+    'changes': ['What\'s new', 'ما الجديد'],
+    'download': ['Download', 'تنزيل'],
+    'update_downloading': ['Downloading update…', 'جاري تنزيل التحديث…'],
   };
 
   static String of(String key) {
