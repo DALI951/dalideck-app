@@ -367,6 +367,7 @@ class AppState {
     'enabled': false,
     'tabs': <String, dynamic>{},
     'pinHash': null,
+    'biometricEnabled': false,
   };
   List<Map<String, dynamic>> tabLayout = [
     {'id': 'today', 'visible': true},
@@ -471,8 +472,9 @@ class AppState {
     if (quran.isEmpty) quran = {'khitma': 0, 'cur': [], 'log': {}};
     if (review.isEmpty) review = {'weeks': {}};
     if (privacyLock.isEmpty) {
-      privacyLock = {'enabled': false, 'tabs': <String, dynamic>{}, 'pinHash': null};
+      privacyLock = {'enabled': false, 'tabs': <String, dynamic>{}, 'pinHash': null, 'biometricEnabled': false};
     }
+    if (!privacyLock.containsKey('biometricEnabled')) privacyLock['biometricEnabled'] = false;
     if (tabLayout.isEmpty) tabLayout = d.tabLayout;
   }
 

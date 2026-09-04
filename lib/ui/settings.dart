@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:local_auth/local_auth.dart';
 import '../i18n.dart';
 import '../main.dart';
 import '../models.dart';
@@ -212,6 +213,22 @@ class SettingsView extends StatelessWidget {
               value: tabs[id] == true,
               onChanged: (v) => store.mutate(() => tabs[id] = v == true),
             ),
+          SwitchListTile(
+            secondary: const Icon(Icons.fingerprint, color: kMuted),
+            title: Text(t('use_biometric')),
+            value: pl['biometricEnabled'] == true,
+            onChanged: (v) async {
+              if (v) {
+                final auth = LocalAuthentication();
+                final canAuth = await auth.canCheckBiometrics;
+                if (!canAuth && mounted) {
+                  showSnack(context, t('biometric_not_available'));
+                  return;
+                }
+              }
+              store.mutate(() => pl['biometricEnabled'] = v);
+            },
+          ),
           const Divider(),
           if (pinHash == null)
             ListTile(
@@ -247,10 +264,10 @@ class SettingsView extends StatelessWidget {
       builder: (_) => AlertDialog(
         title: Text(t('set_pin')),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: c1, obscureText: true, keyboardType: TextInputType.number,
+          TextField(controller: c1, obscureText: true, keyboardType: TextInputType.number, maxLength: 6,
               decoration: InputDecoration(labelText: t('set_pin'))),
           const SizedBox(height: 8),
-          TextField(controller: c2, obscureText: true, keyboardType: TextInputType.number,
+          TextField(controller: c2, obscureText: true, keyboardType: TextInputType.number, maxLength: 6,
               decoration: InputDecoration(labelText: t('confirm_pin'))),
         ]),
         actions: [
@@ -260,12 +277,12 @@ class SettingsView extends StatelessWidget {
       ),
     );
     if (ok == true) {
-      if (!RegExp(r'^\d{6}$').hasMatch(c1.text)) {
+      if (c1.text != c2.text) {
         showSnack(context, t('pin_mismatch'));
         return;
       }
-      if (c1.text != c2.text) {
-        showSnack(context, t('pin_mismatch'));
+      if (!RegExp(r'^\d{6}$').hasMatch(c1.text)) {
+        showSnack(context, t('pin_too_short'));
         return;
       }
       store.mutate(() => store.s.privacyLock['pinHash'] = PinService.hashPin(c1.text));
@@ -282,13 +299,13 @@ class SettingsView extends StatelessWidget {
       builder: (_) => AlertDialog(
         title: Text(t('change_pin')),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: old, obscureText: true, keyboardType: TextInputType.number,
+          TextField(controller: old, obscureText: true, keyboardType: TextInputType.number, maxLength: 6,
               decoration: InputDecoration(labelText: t('enter_pin'))),
           const SizedBox(height: 8),
-          TextField(controller: c1, obscureText: true, keyboardType: TextInputType.number,
+          TextField(controller: c1, obscureText: true, keyboardType: TextInputType.number, maxLength: 6,
               decoration: InputDecoration(labelText: t('set_pin'))),
           const SizedBox(height: 8),
-          TextField(controller: c2, obscureText: true, keyboardType: TextInputType.number,
+          TextField(controller: c2, obscureText: true, keyboardType: TextInputType.number, maxLength: 6,
               decoration: InputDecoration(labelText: t('confirm_pin'))),
         ]),
         actions: [
@@ -307,7 +324,7 @@ class SettingsView extends StatelessWidget {
         return;
       }
       if (!RegExp(r'^\d{6}$').hasMatch(c1.text)) {
-        showSnack(context, t('pin_mismatch'));
+        showSnack(context, t('pin_too_short'));
         return;
       }
       store.mutate(() => store.s.privacyLock['pinHash'] = PinService.hashPin(c1.text));
@@ -318,7 +335,7 @@ class SettingsView extends StatelessWidget {
   Widget _tabLayoutSection(BuildContext context) {
     final s = store.s;
     final tl = s.tabLayout;
-    const pinned = {'today', 'settings'};
+    const pinned = {'today', 'settings', 'more'};
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       _Section(t('tab_layout')),
       Card(child: Column(children: [

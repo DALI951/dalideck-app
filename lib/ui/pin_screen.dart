@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import '../i18n.dart';
 import '../main.dart';
 import '../services/pin_service.dart';
@@ -21,6 +22,7 @@ class _PinScreenState extends State<PinScreen>
   int _lockoutSecs = 0;
   Timer? _lockoutTimer;
   late AnimationController _shakeCtrl;
+  bool _biometricAvailable = false;
 
   @override
   void initState() {
@@ -29,6 +31,9 @@ class _PinScreenState extends State<PinScreen>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+    LocalAuthentication().canCheckBiometrics.then((v) {
+      if (mounted) setState(() => _biometricAvailable = v);
+    });
   }
 
   @override
@@ -90,6 +95,20 @@ class _PinScreenState extends State<PinScreen>
     });
   }
 
+  void _tryBiometric() async {
+    final auth = LocalAuthentication();
+    final didAuth = await auth.authenticate(
+      localizedReason: t('enter_pin'),
+      options: const AuthenticationOptions(stickyAuth: true),
+    );
+    if (didAuth) {
+      widget.onUnlocked();
+      if (mounted) Navigator.of(context).pop();
+    } else {
+      setState(() => _error = t('biometric_failed'));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -136,6 +155,15 @@ class _PinScreenState extends State<PinScreen>
               Text('${t('too_many_attempts')} $_lockoutSecs',
                   style: const TextStyle(color: kAccent, fontSize: 13)),
             const Spacer(),
+            if (_biometricAvailable) ...[
+              const SizedBox(height: 8),
+              IconButton(
+                onPressed: _locked ? null : _tryBiometric,
+                icon: const Icon(Icons.fingerprint, size: 36, color: kAccent),
+                tooltip: t('use_biometric'),
+              ),
+              const SizedBox(height: 4),
+            ],
             _buildNumpad(),
             const SizedBox(height: 24),
           ],

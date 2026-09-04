@@ -1,7 +1,7 @@
 name: dalideck
 description: DaliDeck for Android — syncs two-way with the DaliDeck website via a self-hosted API.
 publish_to: 'none'
-version: 0.2.9+11
+version: 0.3.0+12
 
 environment:
   sdk: ^3.5.0
@@ -17,6 +17,7 @@ dependencies:
   workmanager: ^0.10.7
   flutter_local_notifications: ^18.0.0
   crypto: ^3.0.3
+  local_auth: ^2.3.0
 
 dev_dependencies:
   flutter_test:

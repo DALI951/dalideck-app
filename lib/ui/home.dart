@@ -85,7 +85,7 @@ class _HomeShellState extends State<HomeShell> {
       case 'focus': return FocusView(store: store);
       case 'review': return ReviewView(store: store);
       case 'tutoring': return TutoringView(store: store);
-      case 'more': return MoreView(store: store);
+      case 'more': return MoreView(store: store, sync: widget.sync);
       case 'settings': return SettingsView(store: store, sync: widget.sync);
       default: return TodayView(store: store);
     }
@@ -120,13 +120,16 @@ class _HomeShellState extends State<HomeShell> {
         _listen(store, () => _buildPage(id)),
     ];
     return Scaffold(
-      body: Column(
-        children: [
-          UpdateBanner(manager: widget.updateManager),
-          Expanded(
-            child: IndexedStack(index: _tab, children: pages),
-          ),
-        ],
+      body: SafeArea(
+        top: true,
+        child: Column(
+          children: [
+            UpdateBanner(manager: widget.updateManager),
+            Expanded(
+              child: IndexedStack(index: _tab, children: pages),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,

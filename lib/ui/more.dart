@@ -2,18 +2,23 @@ import 'package:flutter/material.dart';
 import '../i18n.dart';
 import '../main.dart';
 import '../models.dart';
+import '../sync.dart';
 import 'focus.dart';
 import 'habits.dart';
+import 'money.dart';
 import 'notes.dart';
 import 'pin_screen.dart';
 import 'projects.dart';
 import 'quran.dart';
 import 'review.dart';
+import 'today.dart';
 import 'tutoring.dart';
+import 'school.dart';
 
 class MoreView extends StatefulWidget {
   final Store store;
-  const MoreView({super.key, required this.store});
+  final SyncEngine sync;
+  const MoreView({super.key, required this.store, required this.sync});
 
   @override
   State<MoreView> createState() => _MoreViewState();
@@ -39,8 +44,6 @@ class _MoreViewState extends State<MoreView> {
           storedHash: widget.store.s.privacyLock['pinHash'] as String?,
           onUnlocked: () {
             widget.store.unlockTab(tabId);
-            Navigator.of(context).pop();
-            _open(tabId, make);
           },
         ),
       ));
@@ -57,15 +60,13 @@ class _MoreViewState extends State<MoreView> {
   @override
   Widget build(BuildContext context) {
     final s = widget.store.s;
-    final tiles = [
-      (t('focus'), Icons.timer_outlined, 'focus', (Store st) => FocusView(store: st)),
-      (t('quran'), Icons.menu_book_outlined, 'quran', (Store st) => QuranView(store: st)),
-      (t('projects'), Icons.rocket_launch_outlined, 'projects', (Store st) => ProjectsView(store: st)),
-      (t('habits'), Icons.fitness_center_outlined, 'habits', (Store st) => HabitsView(store: st)),
-      (t('notes'), Icons.note_outlined, 'notes', (Store st) => NotesView(store: st)),
-      (t('review'), Icons.fact_check_outlined, 'review', (Store st) => ReviewView(store: st)),
-      (t('tutoring'), Icons.school_outlined, 'tutoring', (Store st) => TutoringView(store: st)),
-    ];
+    final tl = s.tabLayout;
+    final hidden = tl.where((m) => m['visible'] != true && m['id'] != 'more' && m['id'] != 'settings').toList();
+    final tiles = <(String, IconData, String, Widget Function(Store))>[];
+    for (final m in hidden) {
+      final id = m['id'] as String;
+      tiles.add((t(id), _tileIcon(id), id, (Store st) => _buildPage(id, st)));
+    }
 
     final results = _search(s, _q);
 
@@ -173,5 +174,37 @@ class _MoreViewState extends State<MoreView> {
       out.addAll(group(t('habits'), hab.map((x) => (x.name, null)).toList()));
     }
     return out;
+  }
+
+  IconData _tileIcon(String id) {
+    switch (id) {
+      case 'today': return Icons.today_outlined;
+      case 'school': return Icons.school_outlined;
+      case 'money': return Icons.account_balance_wallet_outlined;
+      case 'habits': return Icons.fitness_center_outlined;
+      case 'notes': return Icons.note_outlined;
+      case 'projects': return Icons.rocket_launch_outlined;
+      case 'quran': return Icons.menu_book_outlined;
+      case 'focus': return Icons.timer_outlined;
+      case 'review': return Icons.fact_check_outlined;
+      case 'tutoring': return Icons.school_outlined;
+      default: return Icons.circle_outlined;
+    }
+  }
+
+  Widget _buildPage(String id, Store store) {
+    switch (id) {
+      case 'today': return TodayView(store: store);
+      case 'school': return SchoolView(store: store, sync: widget.sync);
+      case 'money': return MoneyView(store: store);
+      case 'habits': return HabitsView(store: store);
+      case 'notes': return NotesView(store: store);
+      case 'projects': return ProjectsView(store: store);
+      case 'quran': return QuranView(store: store);
+      case 'focus': return FocusView(store: store);
+      case 'review': return ReviewView(store: store);
+      case 'tutoring': return TutoringView(store: store);
+      default: return TodayView(store: store);
+    }
   }
 }
