@@ -160,7 +160,7 @@ class SettingsView extends StatelessWidget {
             child: ListTile(
               leading: const Icon(Icons.system_update, color: kMuted),
               title: const Text('Check for Updates'),
-              subtitle: Text('v$kAppVersion'),
+              subtitle: Text('v${AppVersion.current}'),
               onTap: () => UpdateService().checkForUpdate(context, force: true),
             ),
           ),

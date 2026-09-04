@@ -14,6 +14,7 @@ import 'sync.dart';
 import 'i18n.dart';
 import 'services/background_worker.dart';
 import 'services/update_download_manager.dart';
+import 'services/update_service.dart';
 import 'ui/home.dart';
 
 FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -93,6 +94,7 @@ void main() async {
   }
 
   runZonedGuarded(() async {
+    await AppVersion.init();
     final store = await loadStore();
     final sync = SyncEngine(store);
     store.syncRequested = sync.markSaved;
