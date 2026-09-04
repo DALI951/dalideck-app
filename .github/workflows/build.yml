@@ -64,6 +64,25 @@ jobs:
           open(p, 'w').write(s)
           PY
 
+      - name: Use FlutterFragmentActivity for biometric support
+        run: |
+          python - <<'PY'
+          import glob
+          # flutter create --org ai.dalideck generates the file under ai/dalideck/dalideck/
+          matches = glob.glob('android/app/src/main/kotlin/**/MainActivity.kt', recursive=True)
+          for p in matches:
+              print('Found MainActivity.kt at', p)
+              s = open(p).read()
+              s = s.replace('import io.flutter.embedding.android.FlutterActivity',
+                            'import io.flutter.embedding.android.FlutterFragmentActivity')
+              s = s.replace('class MainActivity: FlutterActivity()',
+                            'class MainActivity: FlutterFragmentActivity()')
+              s = s.replace('class MainActivity : FlutterActivity()',
+                            'class MainActivity : FlutterFragmentActivity()')
+              open(p, 'w').write(s)
+              print('Patched to FlutterFragmentActivity')
+          PY
+
       - name: Install deps
         run: flutter pub get
 
