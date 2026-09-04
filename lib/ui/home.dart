@@ -120,7 +120,7 @@ class _HomeShellState extends State<HomeShell> {
         }
         final pages = <Widget>[
           for (final id in ids)
-            _buildPage(id),
+            KeyedSubtree(key: ValueKey(id), child: _buildPage(id)),
         ];
         return Scaffold(
           body: SafeArea(
