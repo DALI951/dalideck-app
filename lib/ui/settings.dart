@@ -221,7 +221,7 @@ class SettingsView extends StatelessWidget {
               if (v) {
                 final auth = LocalAuthentication();
                 final canAuth = await auth.canCheckBiometrics;
-                if (!canAuth && mounted) {
+                if (!canAuth && context.mounted) {
                   showSnack(context, t('biometric_not_available'));
                   return;
                 }
