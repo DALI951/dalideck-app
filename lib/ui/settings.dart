@@ -461,35 +461,34 @@ class _SettingsViewState extends State<SettingsView> {
               if (!pinned.contains(tl[i]['id'])) ...[
                 IconButton(
                   icon: const Icon(Icons.arrow_upward, size: 18),
-                  onPressed: i > 0 && !pinned.contains(tl[i - 1]['id'])
-                      ? () {
-                            store.mutate(() {
+                    onPressed: i > 0 && !pinned.contains(tl[i - 1]['id'])
+                        ? () {
                               final item = tl.removeAt(i);
                               tl.insert(i - 1, item);
-                            });
-                            setState(() {});
-                          }
-                      : null,
+                              setState(() {});
+                              store.saveRequested?.call();
+                            }
+                        : null,
                 ),
                 IconButton(
                   icon: const Icon(Icons.arrow_downward, size: 18),
-                  onPressed: i < tl.length - 1 && !pinned.contains(tl[i + 1]['id'])
-                      ? () {
-                            store.mutate(() {
+                    onPressed: i < tl.length - 1 && !pinned.contains(tl[i + 1]['id'])
+                        ? () {
                               final item = tl.removeAt(i);
                               tl.insert(i + 1, item);
-                            });
-                            setState(() {});
-                          }
-                      : null,
+                              setState(() {});
+                              store.saveRequested?.call();
+                            }
+                        : null,
                 ),
-                Switch(
-                  value: tl[i]['visible'] == true,
-                  onChanged: (v) {
-                    store.mutate(() => tl[i]['visible'] = v);
-                    setState(() {});
-                  },
-                ),
+                  Switch(
+                    value: tl[i]['visible'] == true,
+                    onChanged: (v) {
+                      tl[i]['visible'] = v;
+                      setState(() {});
+                      store.saveRequested?.call();
+                    },
+                  ),
               ],
             ]),
           ),

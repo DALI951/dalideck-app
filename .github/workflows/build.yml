@@ -42,16 +42,26 @@ jobs:
           pip install pillow --quiet
           python dev/make_icons.py
 
-      - name: Grant INTERNET (release manifest lacks it from flutter create)
+      - name: Add required Android permissions
         run: |
           python - <<'PY'
           p = 'android/app/src/main/AndroidManifest.xml'
           s = open(p).read()
-          if 'android.permission.INTERNET' not in s:
-              s = s.replace('</manifest>',
-                  '    <uses-permission android:name="android.permission.INTERNET"/>\n</manifest>')
-              open(p, 'w').write(s)
-          print('INTERNET present:', 'android.permission.INTERNET' in open(p).read())
+          perms = {
+              'android.permission.INTERNET': 'INTERNET',
+              'android.permission.POST_NOTIFICATIONS': 'POST_NOTIFICATIONS',
+              'android.permission.REQUEST_INSTALL_PACKAGES': 'REQUEST_INSTALL_PACKAGES',
+              'android.permission.USE_BIOMETRIC': 'USE_BIOMETRIC',
+              'android.permission.USE_FINGERPRINT': 'USE_FINGERPRINT',
+          }
+          for perm, label in perms.items():
+              if perm not in s:
+                  s = s.replace('</manifest>',
+                      f'    <uses-permission android:name="{perm}"/>\n</manifest>')
+                  print(f'Added {label}')
+              else:
+                  print(f'{label} already present')
+          open(p, 'w').write(s)
           PY
 
       - name: Install deps
