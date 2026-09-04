@@ -165,6 +165,7 @@ class L {
     'use_biometric': ['Use biometric unlock', 'فتح بالبصمة'],
     'biometric_not_available': ['Biometric not available', 'البصمة غير متوفرة'],
     'biometric_failed': ['Biometric failed, use PIN', 'البصمة فشلت، استخدم PIN'],
+    'biometric_not_enrolled': ['No fingerprints enrolled', 'لا توجد بصمات مسجلة'],
     'too_many_attempts': ['Too many attempts. Wait', 'محاولات كثيرة. انتظر'],
     'tab_locked': ['This tab is locked', 'هذا التبويب مقفل'],
     'tab_layout': ['Tab Layout', 'تخطيط التبويبات'],

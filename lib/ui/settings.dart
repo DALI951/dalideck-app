@@ -21,6 +21,7 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
+  bool _biometricCheckInProgress = false;
   Store get store => widget.store;
 
   @override
@@ -251,7 +252,13 @@ class _SettingsViewState extends State<SettingsView> {
           secondary: const Icon(Icons.lock_outline, color: kMuted),
           title: Text(t('enable_lock')),
           value: enabled,
-          onChanged: (v) => store.mutate(() => pl['enabled'] = v),
+          onChanged: (v) async {
+            if (v && pinHash == null) {
+              await _setPinDialog(context);
+              if (store.s.privacyLock['pinHash'] == null) return;
+            }
+            store.mutate(() => pl['enabled'] = v);
+          },
         ),
         if (enabled) ...[
           for (final id in ['money', 'habits', 'notes', 'projects', 'quran', 'focus', 'review', 'tutoring', 'more'])
@@ -266,12 +273,27 @@ class _SettingsViewState extends State<SettingsView> {
             title: Text(t('use_biometric')),
             value: pl['biometricEnabled'] == true,
             onChanged: (v) async {
+              if (_biometricCheckInProgress) return;
               if (v) {
-                final auth = LocalAuthentication();
-                final canAuth = await auth.canCheckBiometrics;
-                if (!canAuth && context.mounted) {
-                  showSnack(context, t('biometric_not_available'));
-                  return;
+                _biometricCheckInProgress = true;
+                try {
+                  final auth = LocalAuthentication();
+                  try {
+                    final types = await auth.getAvailableBiometrics();
+                    if (types.isEmpty && context.mounted) {
+                      showSnack(context, t('biometric_not_available'));
+                      _biometricCheckInProgress = false;
+                      return;
+                    }
+                  } on PlatformException {
+                    if (context.mounted) {
+                      showSnack(context, t('biometric_not_available'));
+                    }
+                    _biometricCheckInProgress = false;
+                    return;
+                  }
+                } finally {
+                  _biometricCheckInProgress = false;
                 }
               }
               store.mutate(() => pl['biometricEnabled'] = v);

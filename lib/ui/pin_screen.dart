@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import '../i18n.dart';
 import '../main.dart';
@@ -31,9 +32,11 @@ class _PinScreenState extends State<PinScreen>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-    LocalAuthentication().canCheckBiometrics.then((v) {
-      if (mounted) setState(() => _biometricAvailable = v);
-      if (v) {
+    LocalAuthentication().getAvailableBiometrics().then((types) {
+      if (!mounted) return;
+      final available = types.isNotEmpty;
+      setState(() => _biometricAvailable = available);
+      if (available) {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted && _biometricAvailable) _tryBiometric();
         });
@@ -102,16 +105,41 @@ class _PinScreenState extends State<PinScreen>
 
   void _tryBiometric() async {
     final auth = LocalAuthentication();
-    final didAuth = await auth.authenticate(
-      localizedReason: t('enter_pin'),
-      options: const AuthenticationOptions(stickyAuth: true),
-    );
-    if (!mounted) return;
-    if (didAuth) {
-      widget.onUnlocked();
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _error = t('biometric_failed'));
+    try {
+      final didAuth = await auth.authenticate(
+        localizedReason: t('enter_pin'),
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          useErrorDialogs: false,
+        ),
+      );
+      if (!mounted) return;
+      if (didAuth) {
+        widget.onUnlocked();
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _error = t('biometric_failed'));
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      switch (e.code) {
+        case 'auth_in_progress':
+          break;
+        case 'not_available':
+          setState(() {
+            _biometricAvailable = false;
+            _error = t('biometric_not_available');
+          });
+          break;
+        case 'not_enrolled':
+          setState(() {
+            _biometricAvailable = false;
+            _error = t('biometric_not_enrolled');
+          });
+          break;
+        default:
+          setState(() => _error = t('biometric_failed'));
+      }
     }
   }
 
@@ -162,7 +190,7 @@ class _PinScreenState extends State<PinScreen>
                 tooltip: t('use_biometric'),
               ),
               const SizedBox(height: 4),
-              Text('or use fingerprint',
+              Text(t('use_biometric'),
                   style: const TextStyle(color: kMuted, fontSize: 12)),
             ],
             const SizedBox(height: 12),
