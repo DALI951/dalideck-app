@@ -164,6 +164,8 @@ class L {
     'pin_too_short': ['PIN must be 6 digits', 'يجب أن يكون PIN 6 أرقام'],
     'use_biometric': ['Use biometric unlock', 'فتح بالبصمة'],
     'biometric_not_available': ['Biometric not available', 'البصمة غير متوفرة'],
+    'biometric_reason': ['Scan fingerprint to unlock', 'امسح بصمة الإصبع للفتح'],
+    'biometric_cancelled': ['Authentication cancelled', 'تم الإلغاء'],
     'biometric_failed': ['Biometric failed, use PIN', 'البصمة فشلت، استخدم PIN'],
     'biometric_not_enrolled': ['No fingerprints enrolled', 'لا توجد بصمات مسجلة'],
     'too_many_attempts': ['Too many attempts. Wait', 'محاولات كثيرة. انتظر'],

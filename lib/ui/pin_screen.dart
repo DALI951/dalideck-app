@@ -107,10 +107,10 @@ class _PinScreenState extends State<PinScreen>
     final auth = LocalAuthentication();
     try {
       final didAuth = await auth.authenticate(
-        localizedReason: t('enter_pin'),
+        localizedReason: t('biometric_reason'),
         options: const AuthenticationOptions(
           stickyAuth: true,
-          useErrorDialogs: false,
+          useErrorDialogs: true,
         ),
       );
       if (!mounted) return;
@@ -118,7 +118,7 @@ class _PinScreenState extends State<PinScreen>
         widget.onUnlocked();
         Navigator.of(context).pop();
       } else {
-        setState(() => _error = t('biometric_failed'));
+        setState(() => _error = t('biometric_cancelled'));
       }
     } on PlatformException catch (e) {
       if (!mounted) return;
@@ -138,7 +138,7 @@ class _PinScreenState extends State<PinScreen>
           });
           break;
         default:
-          setState(() => _error = t('biometric_failed'));
+        setState(() => _error = t('biometric_failed'));
       }
     }
   }

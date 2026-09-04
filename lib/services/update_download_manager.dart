@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:open_file/open_file.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'background_worker.dart';
@@ -60,6 +61,7 @@ class UpdateDownloadManager extends ChangeNotifier {
         installed.isNotEmpty &&
         _versionAtLeast(installed, s.version)) {
       await _deleteStateFile();
+      await _cleanupOldApks();
       return;
     }
 
@@ -100,6 +102,7 @@ class UpdateDownloadManager extends ChangeNotifier {
   /// Starts the background download worker. Returns immediately; progress is
   /// followed through the state file and the notification.
   Future<void> start(String url, String version) async {
+    await _cleanupOldApks();
     final s = await _readStateFile();
     if (s != null && s.state == 'done') {
       _state = UpdateDownloadState.ready;
@@ -277,6 +280,7 @@ class UpdateDownloadManager extends ChangeNotifier {
     _url = null;
     _version = null;
     _deleteStateFile();
+    _cleanupOldApks();
     notifyListeners();
   }
 
@@ -324,6 +328,18 @@ class UpdateDownloadManager extends ChangeNotifier {
     try {
       final file = File(await updateStateFilePath());
       if (file.existsSync()) file.deleteSync();
+    } catch (_) {}
+  }
+
+  Future<void> _cleanupOldApks() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final files = dir.listSync();
+      for (final f in files) {
+        if (f is File && f.path.contains('dalideck_update') && f.path.endsWith('.apk')) {
+          try { f.deleteSync(); } catch (_) {}
+        }
+      }
     } catch (_) {}
   }
 
