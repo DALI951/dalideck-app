@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../i18n.dart';
 import '../main.dart';
 import '../models.dart';
+import '../services/pin_service.dart';
 import '../services/update_service.dart';
 import '../sync.dart';
 import 'fields.dart';
@@ -149,6 +150,8 @@ class SettingsView extends StatelessWidget {
               onTap: () => _addSubject(context),
             ),
           ),
+          _privacyLockSection(context),
+          _tabLayoutSection(context),
           _Section(t('sync')),
           _SyncCard(store: store, sync: sync),
           _Section('ABOUT'),
@@ -184,6 +187,195 @@ class SettingsView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _privacyLockSection(BuildContext context) {
+    final s = store.s;
+    final pl = s.privacyLock;
+    final enabled = pl['enabled'] == true;
+    final pinHash = pl['pinHash'] as String?;
+    final tabs = pl['tabs'] as Map<String, dynamic>? ?? {};
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _Section(t('privacy_lock')),
+      Card(child: Column(children: [
+        SwitchListTile(
+          secondary: const Icon(Icons.lock_outline, color: kMuted),
+          title: Text(t('enable_lock')),
+          value: enabled,
+          onChanged: (v) => store.mutate(() => pl['enabled'] = v),
+        ),
+        if (enabled) ...[
+          for (final id in ['money', 'habits', 'notes', 'projects', 'quran', 'focus', 'review', 'tutoring', 'more'])
+            CheckboxListTile(
+              dense: true,
+              title: Text(t(id)),
+              value: tabs[id] == true,
+              onChanged: (v) => store.mutate(() => tabs[id] = v == true),
+            ),
+          const Divider(),
+          if (pinHash == null)
+            ListTile(
+              leading: const Icon(Icons.vpn_key_outlined, color: kMuted),
+              title: Text(t('set_pin')),
+              onTap: () => _setPinDialog(context),
+            )
+          else ...[
+            ListTile(
+              leading: const Icon(Icons.vpn_key_outlined, color: kMuted),
+              title: Text(t('change_pin')),
+              onTap: () => _changePinDialog(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: kMuted),
+              title: Text(t('remove_pin')),
+              onTap: () {
+                store.mutate(() => pl['pinHash'] = null);
+                showSnack(context, t('pin_removed'));
+              },
+            ),
+          ],
+        ],
+      ])),
+    ]);
+  }
+
+  Future<void> _setPinDialog(BuildContext context) async {
+    final c1 = TextEditingController();
+    final c2 = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(t('set_pin')),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: c1, obscureText: true, keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: t('set_pin'))),
+          const SizedBox(height: 8),
+          TextField(controller: c2, obscureText: true, keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: t('confirm_pin'))),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(t('save'))),
+        ],
+      ),
+    );
+    if (ok == true) {
+      if (!RegExp(r'^\d{6}$').hasMatch(c1.text)) {
+        showSnack(context, t('pin_mismatch'));
+        return;
+      }
+      if (c1.text != c2.text) {
+        showSnack(context, t('pin_mismatch'));
+        return;
+      }
+      store.mutate(() => store.s.privacyLock['pinHash'] = PinService.hashPin(c1.text));
+      showSnack(context, t('pin_set'));
+    }
+  }
+
+  Future<void> _changePinDialog(BuildContext context) async {
+    final old = TextEditingController();
+    final c1 = TextEditingController();
+    final c2 = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(t('change_pin')),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: old, obscureText: true, keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: t('enter_pin'))),
+          const SizedBox(height: 8),
+          TextField(controller: c1, obscureText: true, keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: t('set_pin'))),
+          const SizedBox(height: 8),
+          TextField(controller: c2, obscureText: true, keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: t('confirm_pin'))),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(t('save'))),
+        ],
+      ),
+    );
+    if (ok == true) {
+      if (!PinService.verifyPin(old.text, store.s.privacyLock['pinHash'] as String?)) {
+        showSnack(context, t('wrong_pin'));
+        return;
+      }
+      if (c1.text != c2.text || c1.text.isEmpty) {
+        showSnack(context, t('pin_mismatch'));
+        return;
+      }
+      if (!RegExp(r'^\d{6}$').hasMatch(c1.text)) {
+        showSnack(context, t('pin_mismatch'));
+        return;
+      }
+      store.mutate(() => store.s.privacyLock['pinHash'] = PinService.hashPin(c1.text));
+      showSnack(context, t('pin_set'));
+    }
+  }
+
+  Widget _tabLayoutSection(BuildContext context) {
+    final s = store.s;
+    final tl = s.tabLayout;
+    const pinned = {'today', 'settings'};
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _Section(t('tab_layout')),
+      Card(child: Column(children: [
+        for (var i = 0; i < tl.length; i++)
+          ListTile(
+            dense: true,
+            title: Text(t(tl[i]['id'] as String)),
+            subtitle: pinned.contains(tl[i]['id']) ? Text(t('pinned_tab'),
+                style: const TextStyle(color: kMuted, fontSize: 11)) : null,
+            leading: Icon(_tabIcon(tl[i]['id'] as String), color: kMuted, size: 20),
+            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+              if (!pinned.contains(tl[i]['id'])) ...[
+                IconButton(
+                  icon: const Icon(Icons.arrow_upward, size: 18),
+                  onPressed: i > 0 && !pinned.contains(tl[i - 1]['id'])
+                      ? () => store.mutate(() {
+                            final item = tl.removeAt(i);
+                            tl.insert(i - 1, item);
+                          })
+                      : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_downward, size: 18),
+                  onPressed: i < tl.length - 1 && !pinned.contains(tl[i + 1]['id'])
+                      ? () => store.mutate(() {
+                            final item = tl.removeAt(i);
+                            tl.insert(i + 1, item);
+                          })
+                      : null,
+                ),
+                Switch(
+                  value: tl[i]['visible'] == true,
+                  onChanged: (v) => store.mutate(() => tl[i]['visible'] = v),
+                ),
+              ],
+            ]),
+          ),
+      ])),
+    ]);
+  }
+
+  IconData _tabIcon(String id) {
+    switch (id) {
+      case 'today': return Icons.today_outlined;
+      case 'school': return Icons.school_outlined;
+      case 'money': return Icons.account_balance_wallet_outlined;
+      case 'habits': return Icons.fitness_center_outlined;
+      case 'notes': return Icons.note_outlined;
+      case 'projects': return Icons.rocket_launch_outlined;
+      case 'quran': return Icons.menu_book_outlined;
+      case 'focus': return Icons.timer_outlined;
+      case 'review': return Icons.fact_check_outlined;
+      case 'tutoring': return Icons.school_outlined;
+      case 'more': return Icons.grid_view_outlined;
+      case 'settings': return Icons.settings_outlined;
+      default: return Icons.circle_outlined;
+    }
   }
 
   void _editProfile(BuildContext context) {

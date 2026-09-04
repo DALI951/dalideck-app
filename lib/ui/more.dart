@@ -5,6 +5,7 @@ import '../models.dart';
 import 'focus.dart';
 import 'habits.dart';
 import 'notes.dart';
+import 'pin_screen.dart';
 import 'projects.dart';
 import 'quran.dart';
 import 'review.dart';
@@ -21,26 +22,49 @@ class MoreView extends StatefulWidget {
 class _MoreViewState extends State<MoreView> {
   String _q = '';
 
-  void _open(Widget Function(Store) make) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ListenableBuilder(
-        listenable: widget.store,
-        builder: (_, __) => make(widget.store),
-      ),
-    ));
+  bool _isLocked(String tabId) {
+    final s = widget.store.s;
+    if (!s.privacyLock['enabled']) return false;
+    if (s.privacyLock['pinHash'] == null) return false;
+    if (widget.store.isTabUnlocked(tabId)) return false;
+    final tabs = s.privacyLock['tabs'] as Map? ?? {};
+    return tabs[tabId] == true;
+  }
+
+  void _open(String tabId, Widget Function(Store) make) {
+    if (_isLocked(tabId)) {
+      Navigator.of(context).push(MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => PinScreen(
+          storedHash: widget.store.s.privacyLock['pinHash'] as String?,
+          onUnlocked: () {
+            widget.store.unlockTab(tabId);
+            Navigator.of(context).pop();
+            _open(tabId, make);
+          },
+        ),
+      ));
+    } else {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ListenableBuilder(
+          listenable: widget.store,
+          builder: (_, __) => make(widget.store),
+        ),
+      ));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final s = widget.store.s;
     final tiles = [
-      (t('focus'), Icons.timer_outlined, (Store st) => FocusView(store: st)),
-      (t('quran'), Icons.menu_book_outlined, (Store st) => QuranView(store: st)),
-      (t('projects'), Icons.rocket_launch_outlined, (Store st) => ProjectsView(store: st)),
-      (t('habits'), Icons.fitness_center_outlined, (Store st) => HabitsView(store: st)),
-      (t('notes'), Icons.note_outlined, (Store st) => NotesView(store: st)),
-      (t('review'), Icons.fact_check_outlined, (Store st) => ReviewView(store: st)),
-      (t('tutoring'), Icons.school_outlined, (Store st) => TutoringView(store: st)),
+      (t('focus'), Icons.timer_outlined, 'focus', (Store st) => FocusView(store: st)),
+      (t('quran'), Icons.menu_book_outlined, 'quran', (Store st) => QuranView(store: st)),
+      (t('projects'), Icons.rocket_launch_outlined, 'projects', (Store st) => ProjectsView(store: st)),
+      (t('habits'), Icons.fitness_center_outlined, 'habits', (Store st) => HabitsView(store: st)),
+      (t('notes'), Icons.note_outlined, 'notes', (Store st) => NotesView(store: st)),
+      (t('review'), Icons.fact_check_outlined, 'review', (Store st) => ReviewView(store: st)),
+      (t('tutoring'), Icons.school_outlined, 'tutoring', (Store st) => TutoringView(store: st)),
     ];
 
     final results = _search(s, _q);
@@ -65,10 +89,10 @@ class _MoreViewState extends State<MoreView> {
               crossAxisSpacing: 12,
               childAspectRatio: 1.35,
               children: [
-                for (final (label, icon, make) in tiles)
+                for (final (label, icon, tabId, make) in tiles)
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () => _open(make),
+                    onTap: () => _open(tabId, make),
                     child: Container(
                       decoration: BoxDecoration(
                         color: kPanel,

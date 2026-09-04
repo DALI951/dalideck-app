@@ -7,11 +7,19 @@ import '../services/update_download_manager.dart';
 import '../services/update_service.dart';
 import '../sync.dart';
 import '../widgets/update_banner.dart';
+import 'focus.dart';
+import 'habits.dart';
 import 'money.dart';
 import 'more.dart';
+import 'notes.dart';
+import 'pin_screen.dart';
+import 'projects.dart';
+import 'quran.dart';
+import 'review.dart';
 import 'school.dart';
 import 'settings.dart';
 import 'today.dart';
+import 'tutoring.dart';
 
 class HomeShell extends StatefulWidget {
   final Store store;
@@ -55,16 +63,61 @@ class _HomeShellState extends State<HomeShell> {
     return ListenableBuilder(listenable: listenable, builder: (_, __) => build());
   }
 
+  bool _isLocked(String tabId) {
+    final s = widget.store.s;
+    if (!s.privacyLock['enabled']) return false;
+    if (s.privacyLock['pinHash'] == null) return false;
+    if (widget.store.isTabUnlocked(tabId)) return false;
+    final tabs = s.privacyLock['tabs'] as Map? ?? {};
+    return tabs[tabId] == true;
+  }
+
+  Widget _buildPage(String id) {
+    final store = widget.store;
+    switch (id) {
+      case 'today': return TodayView(store: store);
+      case 'school': return SchoolView(store: store, sync: widget.sync);
+      case 'money': return MoneyView(store: store);
+      case 'habits': return HabitsView(store: store);
+      case 'notes': return NotesView(store: store);
+      case 'projects': return ProjectsView(store: store);
+      case 'quran': return QuranView(store: store);
+      case 'focus': return FocusView(store: store);
+      case 'review': return ReviewView(store: store);
+      case 'tutoring': return TutoringView(store: store);
+      case 'more': return MoreView(store: store);
+      case 'settings': return SettingsView(store: store, sync: widget.sync);
+      default: return TodayView(store: store);
+    }
+  }
+
+  IconData _navIcon(String id) {
+    switch (id) {
+      case 'today': return Icons.today_outlined;
+      case 'school': return Icons.school_outlined;
+      case 'money': return Icons.account_balance_wallet_outlined;
+      case 'habits': return Icons.fitness_center_outlined;
+      case 'notes': return Icons.note_outlined;
+      case 'projects': return Icons.rocket_launch_outlined;
+      case 'quran': return Icons.menu_book_outlined;
+      case 'focus': return Icons.timer_outlined;
+      case 'review': return Icons.fact_check_outlined;
+      case 'tutoring': return Icons.school_outlined;
+      case 'more': return Icons.grid_view_outlined;
+      case 'settings': return Icons.settings_outlined;
+      default: return Icons.circle_outlined;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = widget.store;
+    final ids = visibleTabIds(store.s);
+    if (_tab >= ids.length) _tab = 0;
+
     final pages = <Widget>[
-      _listen(store, () => TodayView(store: store)),
-      _listen(store, () => SchoolView(store: store, sync: widget.sync)),
-      _listen(store, () => MoneyView(store: store)),
-      _listen(store, () => MoreView(store: store)),
-      _listen(Listenable.merge([store, widget.sync]),
-          () => SettingsView(store: store, sync: widget.sync)),
+      for (final id in ids)
+        _listen(store, () => _buildPage(id)),
     ];
     return Scaffold(
       body: Column(
@@ -77,28 +130,30 @@ class _HomeShellState extends State<HomeShell> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
+        onDestinationSelected: (i) {
+          final id = ids[i];
+          if (_isLocked(id)) {
+            Navigator.of(context).push(MaterialPageRoute(
+              fullscreenDialog: true,
+              builder: (_) => PinScreen(
+                storedHash: store.s.privacyLock['pinHash'] as String?,
+                onUnlocked: () {
+                  store.unlockTab(id);
+                  setState(() => _tab = i);
+                },
+              ),
+            ));
+          } else {
+            setState(() => _tab = i);
+          }
+        },
         destinations: [
-          NavigationDestination(
-              icon: const Icon(Icons.today_outlined),
-              selectedIcon: const Icon(Icons.today),
-              label: t('today')),
-          NavigationDestination(
-              icon: const Icon(Icons.school_outlined),
-              selectedIcon: const Icon(Icons.school),
-              label: t('school')),
-          NavigationDestination(
-              icon: const Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: const Icon(Icons.account_balance_wallet),
-              label: t('money')),
-          NavigationDestination(
-              icon: const Icon(Icons.grid_view_outlined),
-              selectedIcon: const Icon(Icons.grid_view),
-              label: t('more')),
-          NavigationDestination(
-              icon: const Icon(Icons.settings_outlined),
-              selectedIcon: const Icon(Icons.settings),
-              label: t('settings')),
+          for (final id in ids)
+            NavigationDestination(
+              icon: Icon(_navIcon(id)),
+              selectedIcon: Icon(_navIcon(id), fill: 1),
+              label: t(id),
+            ),
         ],
       ),
     );

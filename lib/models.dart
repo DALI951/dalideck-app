@@ -340,7 +340,8 @@ class Revision extends IdItem {
 const kColls = [
   'settings', 'accounts', 'subjects', 'periods', 'cells',
   'tasks', 'exams', 'grades', 'revision', 'tutoring', 'sessions',
-  'projects', 'money', 'habits', 'notes', 'quran', 'review'
+  'projects', 'money', 'habits', 'notes', 'quran', 'review',
+  'privacyLock', 'tabLayout'
 ];
 
 class AppState {
@@ -362,6 +363,25 @@ class AppState {
   List<Note> notes = [];
   Map<String, dynamic> quran = {'khitma': 0, 'cur': [], 'log': {}};
   Map<String, dynamic> review = {'weeks': {}};
+  Map<String, dynamic> privacyLock = {
+    'enabled': false,
+    'tabs': <String, dynamic>{},
+    'pinHash': null,
+  };
+  List<Map<String, dynamic>> tabLayout = [
+    {'id': 'today', 'visible': true},
+    {'id': 'school', 'visible': true},
+    {'id': 'money', 'visible': true},
+    {'id': 'habits', 'visible': false},
+    {'id': 'notes', 'visible': false},
+    {'id': 'projects', 'visible': false},
+    {'id': 'quran', 'visible': false},
+    {'id': 'focus', 'visible': false},
+    {'id': 'review', 'visible': false},
+    {'id': 'tutoring', 'visible': false},
+    {'id': 'more', 'visible': true},
+    {'id': 'settings', 'visible': true},
+  ];
 
   AppState();
 
@@ -402,6 +422,8 @@ class AppState {
         'notes': notes.map((a) => a.toJson()).toList(),
         'quran': quran,
         'review': review,
+        'privacyLock': privacyLock,
+        'tabLayout': tabLayout,
       };
 
   factory AppState.fromJson(Map<String, dynamic> j) {
@@ -427,6 +449,13 @@ class AppState {
     if (j['notes'] is List) s.notes = _list<Note>(j['notes'], Note.fromJson);
     if (j['quran'] is Map) s.quran = Map<String, dynamic>.from(j['quran'] as Map);
     if (j['review'] is Map) s.review = Map<String, dynamic>.from(j['review'] as Map);
+    if (j['privacyLock'] is Map) s.privacyLock = Map<String, dynamic>.from(j['privacyLock'] as Map);
+    if (j['tabLayout'] is List) {
+      s.tabLayout = (j['tabLayout'] as List)
+          .whereType<Map>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .toList();
+    }
     s.repair();
     return s;
   }
@@ -441,6 +470,10 @@ class AppState {
     if (periods.isEmpty) periods = d.periods;
     if (quran.isEmpty) quran = {'khitma': 0, 'cur': [], 'log': {}};
     if (review.isEmpty) review = {'weeks': {}};
+    if (privacyLock.isEmpty) {
+      privacyLock = {'enabled': false, 'tabs': <String, dynamic>{}, 'pinHash': null};
+    }
+    if (tabLayout.isEmpty) tabLayout = d.tabLayout;
   }
 
   String? subjectName(String? id) {
@@ -470,6 +503,8 @@ class AppState {
       case 'notes': return notes.map((a) => a.toJson()).toList();
       case 'quran': return Map<String, dynamic>.from(quran);
       case 'review': return Map<String, dynamic>.from(review);
+      case 'privacyLock': return Map<String, dynamic>.from(privacyLock);
+      case 'tabLayout': return tabLayout.map((m) => Map<String, dynamic>.from(m)).toList();
     }
     return null;
   }
@@ -496,6 +531,9 @@ class AppState {
       case 'notes': notes = _list<Note>(l, Note.fromJson);
       case 'quran': quran = m ?? {'khitma': 0, 'cur': [], 'log': {}};
       case 'review': review = m ?? {'weeks': {}};
+      case 'privacyLock': privacyLock = m ?? {'enabled': false, 'tabs': <String, dynamic>{}, 'pinHash': null};
+      case 'tabLayout':
+        tabLayout = l?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? AppState().tabLayout;
     }
   }
 }
@@ -503,6 +541,10 @@ class AppState {
 class Store extends ChangeNotifier {
   AppState s;
   Store(this.s);
+
+  final Set<String> _unlockedTabs = {};
+  bool isTabUnlocked(String tabId) => _unlockedTabs.contains(tabId);
+  void unlockTab(String tabId) => _unlockedTabs.add(tabId);
 
   void mutate(void Function() fn) {
     try {
@@ -531,3 +573,8 @@ int accountBalance(AppState s, Account a) {
 
 int walletTotal(AppState s) =>
     s.accounts.fold(0, (t, a) => t + accountBalance(s, a));
+
+List<String> visibleTabIds(AppState s) => s.tabLayout
+    .where((m) => m['visible'] == true)
+    .map((m) => m['id'] as String)
+    .toList();

@@ -22,20 +22,6 @@ class TodayView extends StatelessWidget {
         .where((x) => x.$2 != null && x.$2!.isNotEmpty)
         .toList();
 
-    // this month money
-    final ym = tod.substring(0, 7);
-    var inM = 0, outM = 0;
-    for (final m in s.money) {
-      if (m.date.startsWith(ym)) {
-        if (m.type == 'in')
-          inM += m.amount;
-        else
-          outM += m.amount;
-      }
-    }
-    final wallet = walletTotal(s);
-    final cur = s.settings.currency;
-
     // next exam
     Exam? next;
     var nextUntil = 0;
@@ -72,12 +58,6 @@ class TodayView extends StatelessWidget {
         children: [
           _Metric(
               label: t('days'), value: '$dayDiff', sub: '${s.settings.schoolStart}'),
-          _Metric(
-              label: t('this_month'),
-              value: '${fmtM(outM)} $cur',
-              sub: '${t('in')} ${fmtM(inM)} · ${t('out')} ${fmtM(outM)}'),
-          _Metric(label: t('wallet'), value: '${fmtM(wallet)} $cur',
-              sub: s.accounts.map((a) => a.name).join(', ')),
           if (next != null)
             _Metric(
                 label: t('next_exam'),

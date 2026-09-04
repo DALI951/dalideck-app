@@ -150,6 +150,23 @@ class L {
     'copy': ['Copy', 'نسخ'],
     'waiting_for_key': ['Waiting — type this key on the website/other phone', 'انتظار — اكتب هذا المفتاح في الموقع أو هاتف آخر'],
     'connected_to_sync': ['Connected. Both sides stay in sync.', 'تم الربط. كلا الجهازين يبقيان متزامنين.'],
+    'privacy_lock': ['Privacy Lock', 'قفل الخصوصية'],
+    'enable_lock': ['Enable lock', 'تفعيل القفل'],
+    'set_pin': ['Set PIN', 'تعيين PIN'],
+    'change_pin': ['Change PIN', 'تغيير PIN'],
+    'remove_pin': ['Remove PIN', 'إزالة PIN'],
+    'enter_pin': ['Enter PIN to unlock', 'أدخل PIN للفتح'],
+    'confirm_pin': ['Confirm PIN', 'تأكيد PIN'],
+    'wrong_pin': ['Wrong PIN', 'PIN خاطئ'],
+    'pin_set': ['PIN set successfully', 'تم تعيين PIN بنجاح'],
+    'pin_removed': ['PIN removed', 'تم إزالة PIN'],
+    'pin_mismatch': ['PINs don\'t match', 'الـ PIN غير متطابق'],
+    'too_many_attempts': ['Too many attempts. Wait', 'محاولات كثيرة. انتظر'],
+    'tab_locked': ['This tab is locked', 'هذا التبويب مقفل'],
+    'tab_layout': ['Tab Layout', 'تخطيط التبويبات'],
+    'move_up': ['Move up', 'تحريك لأعلى'],
+    'move_down': ['Move down', 'تحريك لأسفل'],
+    'pinned_tab': ['Pinned', 'ثابت'],
   };
 
   static String of(String key) {
