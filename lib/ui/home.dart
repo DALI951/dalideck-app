@@ -59,10 +59,6 @@ class _HomeShellState extends State<HomeShell> {
     super.dispose();
   }
 
-  ListenableBuilder _listen(Listenable listenable, Widget Function() build) {
-    return ListenableBuilder(listenable: listenable, builder: (_, __) => build());
-  }
-
   bool _isLocked(String tabId) {
     final s = widget.store.s;
     if (!s.privacyLock['enabled']) return false;
@@ -112,59 +108,62 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final store = widget.store;
-    final ids = visibleTabIds(store.s);
-
-    var tabIndex = ids.indexOf(_currentTabId);
-    if (tabIndex < 0) {
-      _currentTabId = 'today';
-      tabIndex = ids.indexOf(_currentTabId);
-      if (tabIndex < 0) tabIndex = 0;
-    }
-
-    final pages = <Widget>[
-      for (final id in ids)
-        _listen(store, () => _buildPage(id)),
-    ];
-    return Scaffold(
-      body: SafeArea(
-        top: true,
-        child: Column(
-          children: [
-            UpdateBanner(manager: widget.updateManager),
-            Expanded(
-              child: IndexedStack(index: tabIndex, children: pages),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: tabIndex,
-        onDestinationSelected: (i) {
-          final id = ids[i];
-          if (_isLocked(id)) {
-            Navigator.of(context).push(MaterialPageRoute(
-              fullscreenDialog: true,
-              builder: (_) => PinScreen(
-                storedHash: store.s.privacyLock['pinHash'] as String?,
-                onUnlocked: () {
-                  store.unlockTab(id);
-                  setState(() => _currentTabId = id);
-                },
-              ),
-            ));
-          } else {
-            setState(() => _currentTabId = id);
-          }
-        },
-        destinations: [
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final ids = visibleTabIds(store.s);
+        var tabIndex = ids.indexOf(_currentTabId);
+        if (tabIndex < 0) {
+          _currentTabId = 'today';
+          tabIndex = ids.indexOf(_currentTabId);
+          if (tabIndex < 0) tabIndex = 0;
+        }
+        final pages = <Widget>[
           for (final id in ids)
-            NavigationDestination(
-              icon: Icon(_navIcon(id)),
-              selectedIcon: Icon(_navIcon(id), fill: 1),
-              label: t(id),
+            _buildPage(id),
+        ];
+        return Scaffold(
+          body: SafeArea(
+            top: true,
+            child: Column(
+              children: [
+                UpdateBanner(manager: widget.updateManager),
+                Expanded(
+                  child: IndexedStack(index: tabIndex, children: pages),
+                ),
+              ],
             ),
-        ],
-      ),
+          ),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: tabIndex,
+            onDestinationSelected: (i) {
+              final id = ids[i];
+              if (_isLocked(id)) {
+                Navigator.of(context).push(MaterialPageRoute(
+                  fullscreenDialog: true,
+                  builder: (_) => PinScreen(
+                    storedHash: store.s.privacyLock['pinHash'] as String?,
+                    onUnlocked: () {
+                      store.unlockTab(id);
+                      setState(() => _currentTabId = id);
+                    },
+                  ),
+                ));
+              } else {
+                setState(() => _currentTabId = id);
+              }
+            },
+            destinations: [
+              for (final id in ids)
+                NavigationDestination(
+                  icon: Icon(_navIcon(id)),
+                  selectedIcon: Icon(_navIcon(id), fill: 1),
+                  label: t(id),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

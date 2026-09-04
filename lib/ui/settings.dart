@@ -472,7 +472,7 @@ class _SettingsViewState extends State<SettingsView> {
                               final item = tl.removeAt(i);
                               tl.insert(i - 1, item);
                               setState(() {});
-                              store.saveRequested?.call();
+                              store.mutate(() {});
                             }
                         : null,
                 ),
@@ -483,7 +483,7 @@ class _SettingsViewState extends State<SettingsView> {
                               final item = tl.removeAt(i);
                               tl.insert(i + 1, item);
                               setState(() {});
-                              store.saveRequested?.call();
+                              store.mutate(() {});
                             }
                         : null,
                 ),
@@ -492,7 +492,7 @@ class _SettingsViewState extends State<SettingsView> {
                     onChanged: (v) {
                       tl[i]['visible'] = v;
                       setState(() {});
-                      store.saveRequested?.call();
+                      store.mutate(() {});
                     },
                   ),
               ],
