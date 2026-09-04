@@ -274,27 +274,31 @@ class _SettingsViewState extends State<SettingsView> {
             value: pl['biometricEnabled'] == true,
             onChanged: (v) async {
               if (_biometricCheckInProgress) return;
-              if (v) {
-                _biometricCheckInProgress = true;
+              if (!v) {
+                final verified = await _verifyPinDialog(context);
+                if (!verified) return;
+                store.mutate(() => pl['biometricEnabled'] = false);
+                return;
+              }
+              _biometricCheckInProgress = true;
+              try {
+                final auth = LocalAuthentication();
                 try {
-                  final auth = LocalAuthentication();
-                  try {
-                    final types = await auth.getAvailableBiometrics();
-                    if (types.isEmpty && context.mounted) {
-                      showSnack(context, t('biometric_not_available'));
-                      _biometricCheckInProgress = false;
-                      return;
-                    }
-                  } on PlatformException {
-                    if (context.mounted) {
-                      showSnack(context, t('biometric_not_available'));
-                    }
+                  final types = await auth.getAvailableBiometrics();
+                  if (types.isEmpty && context.mounted) {
+                    showSnack(context, t('biometric_not_available'));
                     _biometricCheckInProgress = false;
                     return;
                   }
-                } finally {
+                } on PlatformException {
+                  if (context.mounted) {
+                    showSnack(context, t('biometric_not_available'));
+                  }
                   _biometricCheckInProgress = false;
+                  return;
                 }
+              } finally {
+                _biometricCheckInProgress = false;
               }
               store.mutate(() => pl['biometricEnabled'] = v);
             },
@@ -315,9 +319,12 @@ class _SettingsViewState extends State<SettingsView> {
             ListTile(
               leading: const Icon(Icons.delete_outline, color: kMuted),
               title: Text(t('remove_pin')),
-              onTap: () {
-                store.mutate(() => pl['pinHash'] = null);
-                showSnack(context, t('pin_removed'));
+              onTap: () async {
+                final verified = await _verifyPinDialog(context);
+                if (verified && context.mounted) {
+                  store.mutate(() => pl['pinHash'] = null);
+                  showSnack(context, t('pin_removed'));
+                }
               },
             ),
           ],
@@ -400,6 +407,40 @@ class _SettingsViewState extends State<SettingsView> {
       store.mutate(() => store.s.privacyLock['pinHash'] = PinService.hashPin(c1.text));
       showSnack(context, t('pin_set'));
     }
+  }
+
+  Future<bool> _verifyPinDialog(BuildContext context) async {
+    final c = TextEditingController();
+    final pl = store.s.privacyLock;
+    final storedHash = pl['pinHash'] as String?;
+    if (storedHash == null) return true;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(t('enter_pin')),
+        content: TextField(
+          controller: c,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          decoration: InputDecoration(labelText: t('enter_pin')),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t('cancel'))),
+          FilledButton(
+            onPressed: () {
+              if (PinService.verifyPin(c.text, storedHash)) {
+                Navigator.pop(context, true);
+              } else {
+                showSnack(context, t('wrong_pin'));
+              }
+            },
+            child: Text(t('ok')),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
   }
 
   Widget _tabLayoutSection(BuildContext context) {

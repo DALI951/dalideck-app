@@ -39,7 +39,7 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int _tab = 0;
+  String _currentTabId = 'today';
   Timer? _updateTimer;
 
   @override
@@ -113,7 +113,13 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final store = widget.store;
     final ids = visibleTabIds(store.s);
-    if (_tab >= ids.length) _tab = 0;
+
+    var tabIndex = ids.indexOf(_currentTabId);
+    if (tabIndex < 0) {
+      _currentTabId = 'today';
+      tabIndex = ids.indexOf(_currentTabId);
+      if (tabIndex < 0) tabIndex = 0;
+    }
 
     final pages = <Widget>[
       for (final id in ids)
@@ -126,13 +132,13 @@ class _HomeShellState extends State<HomeShell> {
           children: [
             UpdateBanner(manager: widget.updateManager),
             Expanded(
-              child: IndexedStack(index: _tab, children: pages),
+              child: IndexedStack(index: tabIndex, children: pages),
             ),
           ],
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
+        selectedIndex: tabIndex,
         onDestinationSelected: (i) {
           final id = ids[i];
           if (_isLocked(id)) {
@@ -142,12 +148,12 @@ class _HomeShellState extends State<HomeShell> {
                 storedHash: store.s.privacyLock['pinHash'] as String?,
                 onUnlocked: () {
                   store.unlockTab(id);
-                  setState(() => _tab = i);
+                  setState(() => _currentTabId = id);
                 },
               ),
             ));
           } else {
-            setState(() => _tab = i);
+            setState(() => _currentTabId = id);
           }
         },
         destinations: [
