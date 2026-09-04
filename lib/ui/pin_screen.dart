@@ -32,16 +32,21 @@ class _PinScreenState extends State<PinScreen>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-    LocalAuthentication().getAvailableBiometrics().then((types) {
-      if (!mounted) return;
-      final available = types.isNotEmpty;
-      setState(() => _biometricAvailable = available);
-      if (available) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted && _biometricAvailable) _tryBiometric();
-        });
-      }
-    });
+    () async {
+      try {
+        final auth = LocalAuthentication();
+        final canCheck = await auth.canCheckBiometrics;
+        final supported = await auth.isDeviceSupported();
+        if (!mounted) return;
+        final available = canCheck && supported;
+        setState(() => _biometricAvailable = available);
+        if (available) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && _biometricAvailable) _tryBiometric();
+          });
+        }
+      } catch (_) {}
+    }();
   }
 
   @override
@@ -106,10 +111,33 @@ class _PinScreenState extends State<PinScreen>
   void _tryBiometric() async {
     final auth = LocalAuthentication();
     try {
+      // 1. Check hardware exists + device is supported
+      bool canCheck = await auth.canCheckBiometrics;
+      bool supported = await auth.isDeviceSupported();
+      if (!canCheck || !supported) {
+        if (!mounted) return;
+        setState(() {
+          _biometricAvailable = false;
+          _error = t('biometric_not_available');
+        });
+        return;
+      }
+      // 2. Check if any biometrics are actually enrolled
+      final types = await auth.getAvailableBiometrics();
+      if (types.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _biometricAvailable = false;
+          _error = t('biometric_not_enrolled');
+        });
+        return;
+      }
+      // 3. Trigger the native biometric prompt
       final didAuth = await auth.authenticate(
         localizedReason: t('biometric_reason'),
         options: const AuthenticationOptions(
           stickyAuth: true,
+          biometricOnly: true,
           useErrorDialogs: true,
         ),
       );
@@ -138,7 +166,7 @@ class _PinScreenState extends State<PinScreen>
           });
           break;
         default:
-        setState(() => _error = t('biometric_failed'));
+          setState(() => _error = t('biometric_failed'));
       }
     }
   }

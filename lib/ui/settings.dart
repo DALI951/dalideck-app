@@ -283,20 +283,26 @@ class _SettingsViewState extends State<SettingsView> {
               _biometricCheckInProgress = true;
               try {
                 final auth = LocalAuthentication();
-                try {
-                  final types = await auth.getAvailableBiometrics();
-                  if (types.isEmpty && context.mounted) {
-                    showSnack(context, t('biometric_not_available'));
-                    _biometricCheckInProgress = false;
-                    return;
-                  }
-                } on PlatformException {
+                final canCheck = await auth.canCheckBiometrics;
+                final supported = await auth.isDeviceSupported();
+                if (!canCheck || !supported) {
                   if (context.mounted) {
                     showSnack(context, t('biometric_not_available'));
                   }
-                  _biometricCheckInProgress = false;
                   return;
                 }
+                final types = await auth.getAvailableBiometrics();
+                if (types.isEmpty) {
+                  if (context.mounted) {
+                    showSnack(context, t('biometric_not_enrolled'));
+                  }
+                  return;
+                }
+              } on PlatformException {
+                if (context.mounted) {
+                  showSnack(context, t('biometric_not_available'));
+                }
+                return;
               } finally {
                 _biometricCheckInProgress = false;
               }
