@@ -549,6 +549,7 @@ class AppState {
 
   void repair() {
     v = 2;
+    quran = Map<String, dynamic>.from(quran);
     final d = AppState.seed();
     if (subjects.isEmpty) subjects = d.subjects;
     if (periods.isEmpty) periods = d.periods;
@@ -562,7 +563,8 @@ class AppState {
         'lastReadDate': '',
       };
     }
-    final hifz = (quran['hifz'] as Map?);
+    quran['hifz'] = Map<String, dynamic>.from(quran['hifz'] as Map);
+    final hifz = quran['hifz'] as Map?;
     if (hifz != null) {
       if (hifz['currentJuz'] is! num) hifz['currentJuz'] = 1;
       if (hifz['currentPage'] is! num) hifz['currentPage'] = 1;
