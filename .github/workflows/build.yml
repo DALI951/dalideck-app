@@ -107,15 +107,15 @@ jobs:
           # LAUNCH action that brings the app main activity to the foreground
           # on widget tap.
           if 'es.antonborri.home_widget.action.BACKGROUND' not in s:
-              s = s.replace('</application>', '''        <receiver android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver" android:exported="true">
+              s = s.replace('</application>', '''            <receiver android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="es.antonborri.home_widget.action.BACKGROUND"/>
             </intent-filter>
-        </receiver>
-        <service android:name="es.antonborri.home_widget.HomeWidgetBackgroundService"
+            </receiver>
+            <service android:name="es.antonborri.home_widget.HomeWidgetBackgroundService"
             android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true"/>
-        <receiver android:name="es.antonborri.home_widget.HomeWidgetProvider" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/home_widget"/></receiver>
-    </application>''')
+            <receiver android:name="es.antonborri.home_widget.HomeWidgetProvider" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/home_widget"/></receiver>
+            </application>''')
               print('Registered home_widget AppWidgetProvider and background receiver/service')
           else:
               print('home_widget background receiver/service already present')
@@ -124,7 +124,7 @@ jobs:
               s = s.replace('</activity>', '''            <intent-filter>
                 <action android:name="es.antonborri.home_widget.action.LAUNCH"/>
             </intent-filter>
-        </activity>''')
+            </activity>''')
               print('Added home_widget LAUNCH action to main activity')
           else:
               print('home_widget LAUNCH action already present')
