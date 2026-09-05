@@ -280,7 +280,7 @@ class L {
     'notification_class': ['Timetable', 'الحصة'],
     'notification_exams': ['Exam reminders', 'الامتحانات'],
     'notification_habits': ['Habits reminder', 'العادات'],
-    'habit_reminder_time': ['Habit reminder time', 'وقت تذكير العادات'],
+    'notification_habit_time': ['Habit reminder time', 'وقت تذكير العادات'],
   };
 
   static String of(String key) {

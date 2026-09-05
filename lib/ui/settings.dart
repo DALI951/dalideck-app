@@ -229,7 +229,7 @@ class _SettingsViewState extends State<SettingsView> {
               ),
               ListTile(
                 leading: const Icon(Icons.alarm, color: kMuted),
-                title: Text(t('habit_reminder_time')),
+                title: Text(t('notification_habit_time')),
                 trailing: Text(s.settings.notif['habitsTime'] as String? ?? '20:00',
                     style: const TextStyle(fontWeight: FontWeight.w700)),
                 onTap: () => _pickNotifTime(context, 'habitsTime'),
