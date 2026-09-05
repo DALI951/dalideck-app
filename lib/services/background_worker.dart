@@ -106,8 +106,9 @@ Future<void> registerNotificationTasks({bool force = false}) async {
         name,
         frequency: const Duration(minutes: 15),
         initialDelay: initialDelay,
-        existingWorkPolicy:
-            force ? ExistingWorkPolicy.replace : ExistingWorkPolicy.keep,
+        existingWorkPolicy: force
+            ? ExistingPeriodicWorkPolicy.replace
+            : ExistingPeriodicWorkPolicy.keep,
       );
     } catch (_) {}
   }

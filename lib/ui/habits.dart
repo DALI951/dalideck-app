@@ -517,11 +517,11 @@ class _StatPill extends StatelessWidget {
 class _Heatmap extends StatelessWidget {
   final Store store;
   final Habit habit;
-  final int weeksBack;
+  final int _weeksBack;
   const _Heatmap({
     required this.store,
     required this.habit,
-    this.weeksBack = 12,
+    this._weeksBack = 12,
   });
 
   static const _cellSize = 14.0;
@@ -549,10 +549,10 @@ class _Heatmap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = heatmapData(habit, weeksBack);
+    final data = heatmapData(habit, _weeksBack);
     final today = DateTime.now();
     final oldest = DateTime(today.year, today.month, today.day)
-        .subtract(Duration(days: 7 * weeksBack + today.weekday - 1));
+        .subtract(Duration(days: 7 * _weeksBack + today.weekday - 1));
     final months = L.lang == 'ar' ? _monthsAr : _monthsEn;
 
     String? monthFor(int c) {
@@ -573,7 +573,7 @@ class _Heatmap extends StatelessWidget {
           Row(
             children: [
               lane,
-              for (var c = 0; c < weeksBack; c++)
+              for (var c = 0; c < _weeksBack; c++)
                 SizedBox(
                   width: _colTotal,
                   child: monthFor(c) == null
@@ -603,8 +603,9 @@ class _Heatmap extends StatelessWidget {
                       style: const TextStyle(color: kMuted, fontSize: 9),
                     ),
                   ),
-                  for (var c = 0; c < weeksBack; c++)
+                  for (var c = 0; c < _weeksBack; c++)
                     _cell(
+                      context: context,
                       count: data[c * 7 + r],
                       date: oldest.add(Duration(days: c * 7 + r)),
                     ),
@@ -616,7 +617,10 @@ class _Heatmap extends StatelessWidget {
     );
   }
 
-  Widget _cell({required int count, required DateTime date}) {
+  Widget _cell(
+      {required BuildContext context,
+      required int count,
+      required DateTime date}) {
     final dayStr = isoOf(date);
     final done = count > 0;
     return Padding(

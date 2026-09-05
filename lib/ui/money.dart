@@ -314,6 +314,12 @@ class _BudgetTile extends StatelessWidget {
   const _BudgetTile(
       {required this.store, required this.b, required this.s, required this.ym});
 
+  String _catLabel(String key) {
+    final v = kCats[key];
+    if (v == null) return key;
+    return L.ar ? v[1] : v[0];
+  }
+
   @override
   Widget build(BuildContext context) {
     int spent = 0;

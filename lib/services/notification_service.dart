@@ -108,9 +108,10 @@ class NotificationService {
       final p = s.periods[i];
       final subId = cellAt(s, p.id, wd);
       if (subId == null || subId.isEmpty) continue;
-      final t = _parseTime(p.time);
-      if (t == null) continue;
-      final classStart = DateTime(now.year, now.month, now.day, t.$1, t.$2);
+      final parsed = _parseTime(p.time);
+      if (parsed == null) continue;
+      final classStart =
+          DateTime(now.year, now.month, now.day, parsed.$1, parsed.$2);
       final target = classStart.subtract(Duration(minutes: lead));
       final flag = '$_flagClass:$today:${p.id}';
       if (_prefs?.getBool(flag) == true) continue;
@@ -166,9 +167,9 @@ class NotificationService {
 
     final now = DateTime.now();
     final today = isoOf(now);
-    final t = _parseTime(time);
-    if (t == null) return;
-    final at = DateTime(now.year, now.month, now.day, t.$1, t.$2);
+    final parsed = _parseTime(time);
+    if (parsed == null) return;
+    final at = DateTime(now.year, now.month, now.day, parsed.$1, parsed.$2);
     final flag = '$_flagHabit:$today';
     if (_prefs?.getBool(flag) == true) return;
     if (now.isBefore(at.subtract(const Duration(minutes: 5)))) return;
@@ -186,9 +187,9 @@ class NotificationService {
 
     final now = DateTime.now();
     final today = isoOf(now);
-    final t = _parseTime(s.settings.notif['ayahTime'] as String? ?? '07:00');
-    if (t == null) return;
-    final at = DateTime(now.year, now.month, now.day, t.$1, t.$2);
+    final parsed = _parseTime(s.settings.notif['ayahTime'] as String? ?? '07:00');
+    if (parsed == null) return;
+    final at = DateTime(now.year, now.month, now.day, parsed.$1, parsed.$2);
     final flag = '$_flagAyah:$today';
     if (_prefs?.getBool(flag) == true) return;
     if (now.isBefore(at.subtract(const Duration(minutes: 5)))) return;

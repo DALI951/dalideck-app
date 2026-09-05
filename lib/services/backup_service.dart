@@ -123,11 +123,11 @@ class BackupService {
     final name = 'dalideck_backup_${now.year}${two(now.month)}${two(now.day)}.enc';
     final file = File('${dir.path}${Platform.pathSeparator}$name');
     await file.writeAsString(payload, flush: true);
-    await SharePlus.instance.share(ShareParams(
-      files: [XFile(file.path)],
+    await Share.shareXFiles(
+      [XFile(file.path)],
       subject: 'DaliDeck backup',
       text: 'DaliDeck encrypted backup',
-    ));
+    );
     return file.path;
   }
 

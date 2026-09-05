@@ -94,7 +94,6 @@ class _GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = store.s;
     final reached = goal.target > 0 && goal.saved >= goal.target;
     final progress = goal.target > 0
         ? (goal.saved / goal.target).clamp(0.0, 1.0).toDouble()

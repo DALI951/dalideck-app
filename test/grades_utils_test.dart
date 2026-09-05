@@ -58,7 +58,7 @@ void main() {
 
     test('honors the term filter', () {
       final (s, a, _) = _twoSubjects();
-      s.grades.add(Grade(uid())..subjectId = a.id..score = 8..max = 20..term = 2);
+      s.grades.add(Grade(uid())..subjectId = a..score = 8..max = 20..term = 2);
       expect(moyenne(s, term: 1), closeTo(12.666666666, 0.001));
       expect(moyenne(s, term: 2), closeTo(8.0, 0.001));
       expect(moyenne(s), closeTo(10.8, 0.001));
@@ -73,8 +73,14 @@ void main() {
 
     test('allSubjectMoyennes returns an entry for every subject', () {
       final (s, a, b) = _twoSubjects();
-      final c = Subject(uid())..name = 'Physics'..coeff = 3; // no grades yet
-      s.subjects = [a, b, c];
+      // Rebuild the two graded subjects from their ids, plus one subject
+      // that has no grades yet.
+      final c = Subject(uid())..name = 'Physics'..coeff = 3;
+      s.subjects = [
+        Subject(a)..name = 'Maths'..coeff = 2,
+        Subject(b)..name = 'English'..coeff = 1,
+        c,
+      ];
       final m = allSubjectMoyennes(s);
       expect(m.keys.toSet(), {a, b, c.id});
       expect(m[a], closeTo(14.0, 0.001));
@@ -127,7 +133,7 @@ void main() {
 
     test('respects the term filter', () {
       final (s, a, _) = _twoSubjects();
-      s.grades.add(Grade(uid())..subjectId = a.id..score = 8..max = 20..term = 2);
+      s.grades.add(Grade(uid())..subjectId = a..score = 8..max = 20..term = 2);
       // Term 1 view is unchanged → same 16.0 as the base fixture.
       expect(neededOnNextTest(s, a, 14.0, term: 1), closeTo(16.0, 0.001));
       // All-terms view is dragged down by the 8/20: reaching 14 with one
