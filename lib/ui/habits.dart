@@ -517,12 +517,7 @@ class _StatPill extends StatelessWidget {
 class _Heatmap extends StatelessWidget {
   final Store store;
   final Habit habit;
-  final int _weeksBack;
-  const _Heatmap({
-    required this.store,
-    required this.habit,
-    this._weeksBack = 12,
-  });
+  const _Heatmap({required this.store, required this.habit});
 
   static const _cellSize = 14.0;
   static const _cellGap = 3.0;
@@ -549,10 +544,10 @@ class _Heatmap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = heatmapData(habit, _weeksBack);
+    final data = heatmapData(habit, 12);
     final today = DateTime.now();
     final oldest = DateTime(today.year, today.month, today.day)
-        .subtract(Duration(days: 7 * _weeksBack + today.weekday - 1));
+        .subtract(Duration(days: 7 * 12 + today.weekday - 1));
     final months = L.lang == 'ar' ? _monthsAr : _monthsEn;
 
     String? monthFor(int c) {
@@ -573,7 +568,7 @@ class _Heatmap extends StatelessWidget {
           Row(
             children: [
               lane,
-              for (var c = 0; c < _weeksBack; c++)
+              for (var c = 0; c < 12; c++)
                 SizedBox(
                   width: _colTotal,
                   child: monthFor(c) == null
@@ -603,7 +598,7 @@ class _Heatmap extends StatelessWidget {
                       style: const TextStyle(color: kMuted, fontSize: 9),
                     ),
                   ),
-                  for (var c = 0; c < _weeksBack; c++)
+                  for (var c = 0; c < 12; c++)
                     _cell(
                       context: context,
                       count: data[c * 7 + r],
