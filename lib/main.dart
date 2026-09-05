@@ -13,8 +13,10 @@ import 'store.dart';
 import 'sync.dart';
 import 'i18n.dart';
 import 'services/background_worker.dart';
+import 'services/notification_service.dart';
 import 'services/update_download_manager.dart';
 import 'services/update_service.dart';
+import 'services/widget_service.dart';
 import 'ui/home.dart';
 
 FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -73,6 +75,7 @@ void main() async {
 
   if (!kIsWeb) {
     await Workmanager().initialize(callbackDispatcher);
+    await registerNotificationTasks();
   }
 
   if (!kIsWeb) {
@@ -91,13 +94,26 @@ void main() async {
         } catch (_) {}
       },
     );
+    await NotificationService.init();
   }
 
   runZonedGuarded(() async {
     await AppVersion.init();
     final store = await loadStore();
+    final persistHook = store.saveRequested;
+    store.saveRequested = () async {
+      persistHook?.call();
+      WidgetService.updateWidgets(store.s);
+    };
     final sync = SyncEngine(store);
     store.syncRequested = sync.markSaved;
+
+    if (!kIsWeb) {
+      NotificationService.scheduleTimetableNotifications(store.s);
+      NotificationService.scheduleExamReminders(store.s);
+      WidgetService.init();
+      WidgetService.updateWidgets(store.s);
+    }
 
     final updateManager = UpdateDownloadManager();
     await updateManager.restoreState();

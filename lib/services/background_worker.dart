@@ -6,9 +6,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
+import '../models.dart';
+import 'notification_service.dart';
+
 const String updateDownloadTaskName = 'bg-download';
+const String timetableNotifTaskName = 'timetable-notif';
+const String habitReminderTaskName = 'habit-reminder';
+const String dailyAyahTaskName = 'daily-ayah';
 
 const String _channelId = 'dalideck_channel';
 const String _channelName = 'DaliDeck Notifications';
@@ -37,8 +44,79 @@ void callbackDispatcher() {
     if (task == updateDownloadTaskName) {
       return _runUpdateDownloadTask(inputData);
     }
+    if (task == timetableNotifTaskName) {
+      return _runTimetableNotifications();
+    }
+    if (task == habitReminderTaskName) {
+      return _runHabitReminder();
+    }
+    if (task == dailyAyahTaskName) {
+      return _runDailyAyah();
+    }
     return true;
   });
+}
+
+/// Loads the AppState JSON from SharedPreferences for background tasks that
+/// have no in-memory Store.
+Future<AppState?> _loadBackgroundState() async {
+  try {
+    final p = await SharedPreferences.getInstance();
+    final raw = p.getString('dalideck.v1');
+    if (raw == null || raw.isEmpty) return null;
+    return AppState.fromJson(
+        json.decode(raw) as Map<String, dynamic>);
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<bool> _runTimetableNotifications() async {
+  final s = await _loadBackgroundState();
+  if (s == null) return true;
+  await NotificationService.scheduleTimetableNotifications(s);
+  await NotificationService.scheduleExamReminders(s);
+  return true;
+}
+
+Future<bool> _runHabitReminder() async {
+  final s = await _loadBackgroundState();
+  if (s == null) return true;
+  final time = s.settings.notif['habitsTime'] as String? ?? '20:00';
+  await NotificationService.scheduleHabitReminder(s, time);
+  return true;
+}
+
+Future<bool> _runDailyAyah() async {
+  final s = await _loadBackgroundState();
+  if (s == null) return true;
+  await NotificationService.scheduleDailyAyah(s);
+  return true;
+}
+
+/// Registers the periodic notification tasks. Android's Workmanager minimum
+/// periodic interval is 15 minutes, so each task re-runs at ~15-min cadence
+/// and the NotificationService time-window logic fires only when due.
+Future<void> registerNotificationTasks({bool force = false}) async {
+  Future<void> reg(String name,
+      {Duration initialDelay = const Duration(seconds: 15)}) async {
+    try {
+      await Workmanager().registerPeriodicTask(
+        name,
+        name,
+        frequency: const Duration(minutes: 15),
+        initialDelay: initialDelay,
+        existingWorkPolicy:
+            force ? ExistingWorkPolicy.replace : ExistingWorkPolicy.keep,
+      );
+    } catch (_) {}
+  }
+
+  await reg(timetableNotifTaskName, initialDelay: const Duration(seconds: 20));
+  await reg(habitReminderTaskName,
+      initialDelay: const Duration(minutes: 5));
+  await reg(dailyAyahTaskName,
+      initialDelay: const Duration(minutes: 10));
 }
 
 /// Downloads the update APK in a background task. Progress is mirrored to a

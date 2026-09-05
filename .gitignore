@@ -16,3 +16,6 @@ KEYSTORE_SECRETS.txt
 .idea/
 *.iml
 .vscode/
+
+# Swarm inspector
+.swarm/

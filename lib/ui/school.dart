@@ -4,6 +4,7 @@ import '../main.dart';
 import '../models.dart';
 import '../sync.dart';
 import 'fields.dart';
+import 'grades_utils.dart';
 
 class SchoolView extends StatelessWidget {
   final Store store;
@@ -64,8 +65,29 @@ class _TimetableTabState extends State<TimetableTab> {
         .map((i) => t(['monday', 'tuesday', 'wednesday', 'thursday', 'friday',
             'saturday', 'sunday'][i]))
         .toList();
+    final week = s.settings.weekOffset;
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var w = 0; w < 2; w++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: ChoiceChip(
+                    label: Text(w == 0 ? t('week_a') : t('week_b')),
+                    selected: week == w,
+                    onSelected: (_) {
+                      if (week == w) return;
+                      widget.store.mutate(() => s.settings.weekOffset = w);
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
         SizedBox(
           height: 48,
           child: ListView(
@@ -101,7 +123,7 @@ class _TimetableTabState extends State<TimetableTab> {
                       );
                     }
                     final p = s.periods[i];
-                    final subId = s.cells['${p.id}:$_wd'];
+                    final subId = cellAt(s, p.id, _wd);
                     final name = s.subjectName(subId);
                     return Card(
                       child: ListTile(
@@ -117,9 +139,9 @@ class _TimetableTabState extends State<TimetableTab> {
                           if (sel == null) return;
                           widget.store.mutate(() {
                             if (sel.isEmpty) {
-                              s.cells.remove('${p.id}:$_wd');
+                              s.cells.remove('${p.id}:$_wd:$week');
                             } else {
-                              s.cells['${p.id}:$_wd'] = sel;
+                              s.cells['${p.id}:$_wd:$week'] = sel;
                             }
                           });
                         },
@@ -336,7 +358,11 @@ class _ExamTile extends StatelessWidget {
     final s = store.s;
     final days = diffDays(todayStr(), exam.date);
     final past = days < 0;
-    final col = past ? kMuted : (days <= 7 ? kAccent : Colors.orange);
+    final col = past
+        ? kMuted
+        : (days <= 3
+            ? Colors.redAccent
+            : (days <= 7 ? Colors.orange : kMuted));
     return Card(
       child: ListTile(
         title: Text(exam.title),
@@ -361,38 +387,117 @@ class _ExamTile extends StatelessWidget {
 }
 
 // ------------------------------------------------------------------ Grades
-class GradesTab extends StatelessWidget {
+class GradesTab extends StatefulWidget {
   final Store store;
   const GradesTab({super.key, required this.store});
 
   @override
+  State<GradesTab> createState() => _GradesTabState();
+}
+
+class _GradesTabState extends State<GradesTab> {
+  int? _term;
+
+  @override
   Widget build(BuildContext context) {
-    final s = store.s;
+    final s = widget.store.s;
     final sorted = List<Grade>.from(s.grades)..sort((a, b) => b.date.compareTo(a.date));
+    final avg = moyenne(s, term: _term);
+    final moyennes = allSubjectMoyennes(s, term: _term);
+
+    // subjects that actually have grades (in the selected term)
+    final withGrades = s.subjects
+        .where((sub) => s.grades.any(
+            (g) => g.subjectId == sub.id && (_term == null || g.term == _term)))
+        .toList();
+
     return Scaffold(
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          if (sorted.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(t('semester_avg').toUpperCase(),
+                      style: const TextStyle(
+                          color: kAccent, fontSize: 11, letterSpacing: 1.5)),
+                  const SizedBox(height: 6),
+                  Text(_g(avg),
+                      style:
+                          const TextStyle(fontSize: 34, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _termChip(null, t('all_terms')),
+                      _termChip(1, t('term_1')),
+                      _termChip(2, t('term_2')),
+                      _termChip(3, t('term_3')),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (s.grades.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(t('empty_grades'),
+              child: Text(t('no_grades_yet'),
                   style: const TextStyle(color: kMuted), textAlign: TextAlign.center),
+            )
+          else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(t('per_subject').toUpperCase(),
+                    style: const TextStyle(
+                        color: kMuted, fontSize: 12, letterSpacing: 1.2)),
+                TextButton.icon(
+                  onPressed: () => _targetCalc(context),
+                  icon: const Icon(Icons.flag_outlined, size: 18),
+                  label: Text(t('target_calculator')),
+                ),
+              ],
             ),
-          ...sorted.map((g) => Card(
+            ...withGrades.map((sub) {
+              final count = s.grades
+                  .where((g) =>
+                      g.subjectId == sub.id &&
+                      (_term == null || g.term == _term))
+                  .length;
+              return Card(
                 child: ListTile(
-                  title:
-                      Text('${s.subjectName(g.subjectId) ?? '-'} · ${g.label}'),
-                  subtitle: Text(g.date),
-                  trailing: Text('${g.score}/${g.max}',
-                      style: TextStyle(
+                  dense: true,
+                  title: Text(sub.name),
+                  subtitle: Text(t('grade_count').replaceFirst('%s', '$count')),
+                  trailing: Text(_g(moyennes[sub.id]!) + '/20',
+                      style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: (g.score / g.max >= 0.6) ? Colors.greenAccent : kAccent)),
-                  onLongPress: () =>
-                      store.mutate(() => s.grades.remove(g)),
+                          color: kAccent)),
                 ),
-              )),
+              );
+            }),
+            const Divider(color: kMuted),
+            ...sorted.map((g) => Card(
+                  child: ListTile(
+                    title:
+                        Text('${s.subjectName(g.subjectId) ?? '-'} · ${g.label}'),
+                    subtitle: Text(g.date),
+                    trailing: Text('${g.score}/${g.max}',
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: (g.score / g.max >= 0.6) ? Colors.greenAccent : kAccent)),
+                    onLongPress: () =>
+                        widget.store.mutate(() => s.grades.remove(g)),
+                  ),
+                )),
+          ],
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -403,8 +508,88 @@ class GradesTab extends StatelessWidget {
     );
   }
 
+  Widget _termChip(int? value, String label) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: _term == value,
+      onSelected: (_) => setState(() => _term = value),
+    );
+  }
+
+  Future<void> _targetCalc(BuildContext context) {
+    final s = widget.store.s;
+    var tgt = 12.0;
+    return showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDlg) => AlertDialog(
+          title: Text(t('target_calculator')),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  autofocus: true,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(labelText: t('target_grade')),
+                  onChanged: (v) {
+                    final d = double.tryParse(v);
+                    if (d != null) tgt = d;
+                    setDlg(() {});
+                  },
+                ),
+                const SizedBox(height: 12),
+                ...s.subjects
+                    .where((sub) => s.grades.any((g) =>
+                        g.subjectId == sub.id &&
+                        (_term == null || g.term == _term)))
+                    .map((sub) {
+                  final need = neededOnNextTest(s, sub.id, tgt, term: _term);
+                  String msg;
+                  Color col;
+                  if (need > 20) {
+                    msg = t('target_impossible');
+                    col = kMuted;
+                  } else if (need <= 0) {
+                    msg = t('already_above_target');
+                    col = Colors.greenAccent;
+                  } else {
+                    msg =
+                        t('needed_score').replaceFirst('%s', _g(need));
+                    col = kAccent;
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(sub.name,
+                              style: const TextStyle(fontSize: 13)),
+                        ),
+                        Text(msg,
+                            style: TextStyle(fontSize: 13, color: col)),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(t('ok')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _addGrade(BuildContext context) async {
-    final s = store.s;
+    final s = widget.store.s;
     final v = await showEntryDialog(
       context,
       t('add'),
@@ -421,7 +606,7 @@ class GradesTab extends StatelessWidget {
       ],
     );
     if (v == null) return;
-    store.mutate(() {
+    widget.store.mutate(() {
       s.grades.add(Grade(uid())
         ..subjectId = (v['subjectId'] as String? ?? '').isEmpty
             ? null
@@ -513,6 +698,12 @@ class _RevTile extends StatelessWidget {
 }
 
 // ------------------------------------------------------------------ utils
+// Grade display: 15.00 -> '15', 13.50 -> '13.5', 14.66 -> '14.66'
+String _g(double v) {
+  if (v == v.roundToDouble()) return v.toInt().toString();
+  return v.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+}
+
 String _dueFor(AppState s, Revision r) {
   for (final e in s.exams) {
     if (e.id == r.examId) return addDaysStr(e.date, -r.offset);

@@ -83,6 +83,93 @@ jobs:
               print('Patched to FlutterFragmentActivity')
           PY
 
+      - name: Configure Home Widget provider and permissions
+        run: |
+          python - <<'PY'
+          import os
+
+          p = 'android/app/src/main/AndroidManifest.xml'
+          s = open(p).read()
+
+          # (a) Required permission so the widget can be re-armed after reboot
+          if 'android.permission.RECEIVE_BOOT_COMPLETED' not in s:
+              s = s.replace('</manifest>',
+                  '    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n</manifest>')
+              print('Added RECEIVE_BOOT_COMPLETED')
+          else:
+              print('RECEIVE_BOOT_COMPLETED already present')
+
+          # (b) home_widget 0.7.0 ships no Dart-side Glance API, so we register
+          # the concrete components the plugin resolves at runtime: the widget
+          # AppWidgetProvider itself (required for the launcher to list the
+          # widget and for HomeWidget.updateWidget to reach it), the background
+          # receiver/service (used by registerInteractivityCallback) and the
+          # LAUNCH action that brings the app main activity to the foreground
+          # on widget tap.
+          if 'es.antonborri.home_widget.action.BACKGROUND' not in s:
+              s = s.replace('</application>', '''        <receiver android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.BACKGROUND"/>
+            </intent-filter>
+        </receiver>
+        <service android:name="es.antonborri.home_widget.HomeWidgetBackgroundService"
+            android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true"/>
+        <receiver android:name="es.antonborri.home_widget.HomeWidgetProvider" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/home_widget"/></receiver>
+    </application>''')
+              print('Registered home_widget AppWidgetProvider and background receiver/service')
+          else:
+              print('home_widget background receiver/service already present')
+
+          if 'es.antonborri.home_widget.action.LAUNCH' not in s:
+              s = s.replace('</activity>', '''            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.LAUNCH"/>
+            </intent-filter>
+        </activity>''')
+              print('Added home_widget LAUNCH action to main activity')
+          else:
+              print('home_widget LAUNCH action already present')
+          open(p, 'w').write(s)
+
+          # (c) appwidget-provider metadata
+          xml_dir = 'android/app/src/main/res/xml'
+          layout_dir = 'android/app/src/main/res/layout'
+          os.makedirs(xml_dir, exist_ok=True)
+          os.makedirs(layout_dir, exist_ok=True)
+
+          with open(os.path.join(xml_dir, 'home_widget.xml'), 'w') as f:
+              f.write('''<?xml version="1.0" encoding="utf-8"?>
+          <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+              android:minWidth="250dp"
+              android:minHeight="110dp"
+              android:updatePeriodMillis="1800000"
+              android:initialLayout="@layout/layout"
+              android:resizeMode="horizontal|vertical"
+              android:widgetCategory="home_screen">
+          </appwidget-provider>
+          ''')
+          print('Wrote res/xml/home_widget.xml')
+
+          # (d) initial remote layout — compact dark card with the DaliDeck label
+          with open(os.path.join(layout_dir, 'layout.xml'), 'w') as f:
+              f.write('''<?xml version="1.0" encoding="utf-8"?>
+          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="#0B0D10">
+
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_gravity="center"
+                  android:text="DaliDeck"
+                  android:textColor="#DC2626"
+                  android:textSize="18sp"
+                  android:textStyle="bold"/>
+          </FrameLayout>
+          ''')
+          print('Wrote res/layout/layout.xml')
+          PY
+
       - name: Install deps
         run: flutter pub get
 

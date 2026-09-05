@@ -5,6 +5,7 @@ import 'package:local_auth/local_auth.dart';
 import '../i18n.dart';
 import '../main.dart';
 import '../models.dart';
+import '../services/backup_service.dart';
 import '../services/pin_service.dart';
 import '../services/update_download_manager.dart';
 import '../services/update_service.dart';
@@ -192,6 +193,71 @@ class _SettingsViewState extends State<SettingsView> {
               leading: const Icon(Icons.upload_outlined, color: kMuted),
               title: Text(t('import_json')),
               onTap: () => _importDialog(context),
+            ),
+          ),
+          _Section(t('notifications')),
+          Card(
+            child: Column(children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.notifications_outlined, color: kMuted),
+                title: Text(t('enable_notifications')),
+                value: s.settings.notif['enabled'] != false,
+                onChanged: (v) =>
+                    store.mutate(() => s.settings.notif['enabled'] = v),
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              SwitchListTile(
+                secondary: const Icon(Icons.schedule, color: kMuted),
+                title: Text(t('notification_class')),
+                value: s.settings.notif['tasks'] != false,
+                onChanged: (v) =>
+                    store.mutate(() => s.settings.notif['tasks'] = v),
+              ),
+              SwitchListTile(
+                secondary: const Icon(Icons.event_outlined, color: kMuted),
+                title: Text(t('notification_exams')),
+                value: s.settings.notif['exams'] != false,
+                onChanged: (v) =>
+                    store.mutate(() => s.settings.notif['exams'] = v),
+              ),
+              SwitchListTile(
+                secondary: const Icon(Icons.fitness_center_outlined, color: kMuted),
+                title: Text(t('notification_habits')),
+                value: s.settings.notif['habits'] != false,
+                onChanged: (v) =>
+                    store.mutate(() => s.settings.notif['habits'] = v),
+              ),
+              ListTile(
+                leading: const Icon(Icons.alarm, color: kMuted),
+                title: Text(t('habit_reminder_time')),
+                trailing: Text(s.settings.notif['habitsTime'] as String? ?? '20:00',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                onTap: () => _pickNotifTime(context, 'habitsTime'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.auto_stories_outlined, color: kMuted),
+                title: Text(t('daily_ayah')),
+                trailing: Text(s.settings.notif['ayahTime'] as String? ?? '07:00',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                onTap: () => _pickNotifTime(context, 'ayahTime'),
+              ),
+            ]),
+          ),
+          _Section(t('encrypted_backup')),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.lock_outline, color: kMuted),
+              title: Text(t('export_encrypted')),
+              subtitle: Text(t('no_sync_on_backup')),
+              onTap: () => _exportBackupDialog(context),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.lock_open_outlined, color: kMuted),
+              title: Text(t('import_encrypted')),
+              subtitle: Text(t('no_sync_on_backup')),
+              onTap: () => _importBackupFlow(context),
             ),
           ),
           const SizedBox(height: 24),
@@ -672,6 +738,128 @@ class _SettingsViewState extends State<SettingsView> {
       showSnack(context, t('ok'));
     } catch (_) {
       showSnack(context, t('sync_error'));
+    }
+  }
+
+  Future<void> _pickNotifTime(BuildContext context, String key) async {
+    final cur = store.s.settings.notif[key] as String? ??
+        (key == 'habitsTime' ? '20:00' : '07:00');
+    final parts = cur.split(':');
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: int.tryParse(parts[0]) ?? (key == 'habitsTime' ? 20 : 7),
+        minute: parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0,
+      ),
+    );
+    if (picked == null) return;
+    final timeStr = '${picked.hour.toString().padLeft(2, '0')}:'
+        '${picked.minute.toString().padLeft(2, '0')}';
+    store.mutate(() => store.s.settings.notif[key] = timeStr);
+  }
+
+  Future<String?> _backupPasswordDialog(BuildContext context,
+      {required bool confirm}) async {
+    final c1 = TextEditingController();
+    final c2 = TextEditingController();
+    final r = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(t('backup_password')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: c1,
+              obscureText: true,
+              autofocus: true,
+              decoration: InputDecoration(labelText: t('enter_password')),
+            ),
+            if (confirm) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: c2,
+                obscureText: true,
+                decoration: InputDecoration(labelText: t('confirm_password')),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: Text(t('cancel'))),
+          FilledButton(
+            onPressed: () {
+              if (confirm && c1.text != c2.text) {
+                showSnack(context, t('pin_mismatch'));
+                return;
+              }
+              if (c1.text.isEmpty) {
+                showSnack(context, t('password_required'));
+                return;
+              }
+              Navigator.pop(context, c1.text);
+            },
+            child: Text(t('ok')),
+          ),
+        ],
+      ),
+    );
+    return r;
+  }
+
+  Future<void> _exportBackupDialog(BuildContext context) async {
+    final pw = await _backupPasswordDialog(context, confirm: true);
+    if (pw == null) return;
+    try {
+      await BackupService.exportBackup(store.s, pw);
+      if (!context.mounted) return;
+      showSnack(context, t('backup_created'));
+    } catch (e) {
+      if (!context.mounted) return;
+      showSnack(context, '${t('sync_error')}: $e');
+    }
+  }
+
+  Future<void> _importBackupFlow(BuildContext context) async {
+    final path = await BackupService.pickBackupFile();
+    if (path == null) return;
+    final pw = await _backupPasswordDialog(context, confirm: false);
+    if (pw == null) return;
+    final result = await BackupService.importBackup(path: path, password: pw);
+    if (!context.mounted) return;
+    switch (result.status) {
+      case BackupImportStatus.cancelled:
+        return;
+      case BackupImportStatus.wrongPassword:
+        showSnack(context, t('backup_wrong_password'));
+        return;
+      case BackupImportStatus.corrupt:
+        showSnack(context, t('backup_corrupt'));
+        return;
+      case BackupImportStatus.success:
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(t('import_encrypted')),
+            content: Text(t('confirm_restore')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(t('cancel')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(t('save')),
+              ),
+            ],
+          ),
+        );
+        if (ok != true || result.data == null) return;
+        store.mutate(() => store.s = AppState.fromJson(result.data!));
+        widget.sync.disconnect();
+        showSnack(context, t('backup_restored'));
+        break;
     }
   }
 }

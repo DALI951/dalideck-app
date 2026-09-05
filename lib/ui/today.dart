@@ -10,15 +10,13 @@ class TodayView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = store.s;
-    final c = s.coll('cells');
-    final cells = c is Map<String, Object?> ? c : const <String, Object?>{};
     final wd = todayIdx();
     final tod = todayStr();
     final dayDiff = diffDays(s.settings.schoolStart, tod);
 
-    // today's lessons
+    // today's lessons (A/B week aware)
     final lessons = s.periods
-        .map((p) => (p, cells['${p.id}:$wd'] as String?))
+        .map((p) => (p, cellAt(s, p.id, wd)))
         .where((x) => x.$2 != null && x.$2!.isNotEmpty)
         .toList();
 
@@ -45,6 +43,24 @@ class TodayView extends StatelessWidget {
       if (e == null || r.done) return false;
       return addDaysStr(e.date, -r.offset).compareTo(tod) <= 0;
     }).toList();
+
+    // exams within the next 7 days (inclusive)
+    final soonExams = s.exams
+        .where((e) {
+          final d = diffDays(tod, e.date);
+          return d >= 0 && d <= 7;
+        })
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    // distinct recommended subjects for the study plan
+    final focusLabels = <String>[];
+    for (final e in soonExams) {
+      final label = s.subjectName(e.subjectId) ?? e.title;
+      if (label.isEmpty) continue;
+      if (focusLabels.contains(label)) continue;
+      focusLabels.add(label);
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(t('today')), actions: [
@@ -78,6 +94,53 @@ class TodayView extends StatelessWidget {
                     trailing: Text(s.subjectName(x.$2) ?? ''),
                   ),
                 )),
+          if (soonExams.isNotEmpty) ...[
+            _Section(t('upcoming_exams')),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  children: soonExams.map((e) {
+                    final d = diffDays(tod, e.date);
+                    final col = d <= 3 ? Colors.redAccent : Colors.orange;
+                    final name = s.subjectName(e.subjectId) ?? e.title;
+                    return ListTile(
+                      dense: true,
+                      leading: Icon(Icons.event, size: 20, color: col),
+                      title: Text(name),
+                      subtitle: Text(e.date),
+                      trailing: Text(
+                        d == 0
+                            ? t('exam_due_today').replaceFirst('%s', name)
+                            : t('exam_in_days')
+                                .replaceFirst('%s', name)
+                                .replaceFirst('%s', '$d'),
+                        style: TextStyle(
+                            color: col,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            _Section(t('study_plan')),
+            if (focusLabels.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(t('no_exams'), style: const TextStyle(color: kMuted)),
+              )
+            else
+              ...focusLabels.map((lab) => Card(
+                    child: ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.menu_book, color: kAccent),
+                      title: Text(t('study_recommendation')
+                          .replaceFirst('%s', lab)),
+                    ),
+                  )),
+          ],
           _Section(t('tasks')),
           if (todayTasks.isEmpty)
             Padding(

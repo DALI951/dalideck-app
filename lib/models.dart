@@ -74,6 +74,7 @@ class Settings {
   String schoolStart = '2026-09-15';
   int monthlyBudget = 100000;
   bool prayer = true;
+  int weekOffset = 0; // 0 = Week A, 1 = Week B
   Map<String, dynamic> notif = {
     'enabled': false,
     'tasks': true,
@@ -92,6 +93,7 @@ class Settings {
         'schoolStart': schoolStart,
         'monthlyBudget': monthlyBudget,
         'prayer': prayer,
+        'weekOffset': weekOffset,
         'notif': notif,
       };
 
@@ -112,6 +114,10 @@ class Settings {
       s.monthlyBudget = d.monthlyBudget;
     }
     if (j['prayer'] is bool) s.prayer = j['prayer'] as bool;
+    if (j['weekOffset'] is num) {
+      final w = (j['weekOffset'] as num).toInt();
+      s.weekOffset = (w == 0 || w == 1) ? w : 0;
+    }
     if (j['notif'] is Map) {
       s.notif = Map<String, dynamic>.from(j['notif'] as Map);
     }
@@ -275,6 +281,74 @@ class MoneyEntry extends IdItem {
     ..date = '${j['date'] ?? todayStr()}';
 }
 
+class BudgetCategory extends IdItem {
+  String cat = 'other';
+  int limit = 0; // millimes per month
+  BudgetCategory(super.id);
+  Map<String, dynamic> toJson() => {'id': id, 'cat': cat, 'limit': limit};
+  factory BudgetCategory.fromJson(Map<String, dynamic> j) =>
+      BudgetCategory('${j['id']}')
+        ..cat = '${j['cat'] ?? 'other'}'
+        ..limit = (j['limit'] as num?)?.toInt() ?? 0;
+}
+
+class RecurringEntry extends IdItem {
+  String type = 'out'; // 'out' | 'in'
+  int amount = 0; // millimes
+  String? accountId;
+  String cat = 'other';
+  String note = '';
+  int dayOfMonth = 1;
+  bool active = true;
+  String? lastApplied; // ISO date
+  RecurringEntry(super.id);
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type,
+        'amount': amount,
+        'cat': cat,
+        'note': note,
+        'dayOfMonth': dayOfMonth,
+        'active': active,
+        if (lastApplied != null) 'lastApplied': lastApplied,
+        if (accountId != null) 'accountId': accountId,
+      };
+  factory RecurringEntry.fromJson(Map<String, dynamic> j) =>
+      RecurringEntry('${j['id']}')
+        ..type = '${j['type'] ?? 'out'}'
+        ..amount = (j['amount'] as num?)?.toInt() ?? 0
+        ..accountId = j['accountId'] as String?
+        ..cat = '${j['cat'] ?? 'other'}'
+        ..note = '${j['note'] ?? ''}'
+        ..dayOfMonth = (j['dayOfMonth'] as num?)?.toInt() ?? 1
+        ..active = j['active'] != false
+        ..lastApplied = j['lastApplied'] as String?;
+}
+
+class SavingsGoal extends IdItem {
+  String name = '';
+  int target = 0; // millimes
+  int saved = 0; // millimes
+  String? deadline; // ISO date
+  String icon = '🎯';
+  SavingsGoal(super.id);
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'target': target,
+        'saved': saved,
+        'icon': icon,
+        if (deadline != null) 'deadline': deadline,
+      };
+  factory SavingsGoal.fromJson(Map<String, dynamic> j) =>
+      SavingsGoal('${j['id']}')
+        ..name = '${j['name'] ?? ''}'
+        ..target = (j['target'] as num?)?.toInt() ?? 0
+        ..saved = (j['saved'] as num?)?.toInt() ?? 0
+        ..deadline = j['deadline'] as String?
+        ..icon = '${j['icon'] ?? '🎯'}';
+}
+
 class Habit extends IdItem {
   String name = '';
   List<String> days = [];
@@ -341,7 +415,7 @@ const kColls = [
   'settings', 'accounts', 'subjects', 'periods', 'cells',
   'tasks', 'exams', 'grades', 'revision', 'tutoring', 'sessions',
   'projects', 'money', 'habits', 'notes', 'quran', 'review',
-  'privacyLock', 'tabLayout'
+  'privacyLock', 'tabLayout', 'budgets', 'recurring', 'savingsGoals'
 ];
 
 class AppState {
@@ -359,6 +433,9 @@ class AppState {
   List<Session> sessions = [];
   List<Project> projects = [];
   List<MoneyEntry> money = [];
+  List<BudgetCategory> budgets = [];
+  List<RecurringEntry> recurring = [];
+  List<SavingsGoal> savingsGoals = [];
   List<Habit> habits = [];
   List<Note> notes = [];
   Map<String, dynamic> quran = {'khitma': 0, 'cur': [], 'log': {}};
@@ -419,6 +496,9 @@ class AppState {
         'sessions': sessions.map((a) => a.toJson()).toList(),
         'projects': projects.map((a) => a.toJson()).toList(),
         'money': money.map((a) => a.toJson()).toList(),
+        'budgets': budgets.map((a) => a.toJson()).toList(),
+        'recurring': recurring.map((a) => a.toJson()).toList(),
+        'savingsGoals': savingsGoals.map((a) => a.toJson()).toList(),
         'habits': habits.map((a) => a.toJson()).toList(),
         'notes': notes.map((a) => a.toJson()).toList(),
         'quran': quran,
@@ -446,6 +526,9 @@ class AppState {
     if (j['sessions'] is List) s.sessions = _list<Session>(j['sessions'], Session.fromJson);
     if (j['projects'] is List) s.projects = _list<Project>(j['projects'], Project.fromJson);
     if (j['money'] is List) s.money = _list<MoneyEntry>(j['money'], MoneyEntry.fromJson);
+    if (j['budgets'] is List) s.budgets = _list<BudgetCategory>(j['budgets'], BudgetCategory.fromJson);
+    if (j['recurring'] is List) s.recurring = _list<RecurringEntry>(j['recurring'], RecurringEntry.fromJson);
+    if (j['savingsGoals'] is List) s.savingsGoals = _list<SavingsGoal>(j['savingsGoals'], SavingsGoal.fromJson);
     if (j['habits'] is List) s.habits = _list<Habit>(j['habits'], Habit.fromJson);
     if (j['notes'] is List) s.notes = _list<Note>(j['notes'], Note.fromJson);
     if (j['quran'] is Map) s.quran = Map<String, dynamic>.from(j['quran'] as Map);
@@ -470,12 +553,55 @@ class AppState {
     if (subjects.isEmpty) subjects = d.subjects;
     if (periods.isEmpty) periods = d.periods;
     if (quran.isEmpty) quran = {'khitma': 0, 'cur': [], 'log': {}};
+    if (!quran.containsKey('hifz') || quran['hifz'] is! Map) {
+      quran['hifz'] = {
+        'currentPage': 1,
+        'currentJuz': 1,
+        'revisionJuz': <int>[],
+        'revisionLog': <String, dynamic>{},
+        'lastReadDate': '',
+      };
+    }
+    final hifz = (quran['hifz'] as Map?);
+    if (hifz != null) {
+      if (hifz['currentJuz'] is! num) hifz['currentJuz'] = 1;
+      if (hifz['currentPage'] is! num) hifz['currentPage'] = 1;
+      if (hifz['revisionJuz'] is! List) hifz['revisionJuz'] = <int>[];
+      if (hifz['revisionLog'] is! Map) hifz['revisionLog'] = <String, dynamic>{};
+      if (hifz['lastReadDate'] is! String) hifz['lastReadDate'] = '';
+    }
+    if (quran['lastAyah'] is! num) quran['lastAyah'] = 1;
     if (review.isEmpty) review = {'weeks': {}};
     if (privacyLock.isEmpty) {
       privacyLock = {'enabled': false, 'tabs': <String, dynamic>{}, 'pinHash': null, 'biometricEnabled': false};
     }
     if (!privacyLock.containsKey('biometricEnabled')) privacyLock['biometricEnabled'] = false;
     if (tabLayout.isEmpty) tabLayout = d.tabLayout;
+    applyRecurring();
+  }
+
+  // Auto-apply due recurring entries (called from repair() and Money tab).
+  // Guard: entry.active, today.day == dayOfMonth, month has that day,
+  // and lastApplied is not already in the current month.
+  void applyRecurring() {
+    final now = DateTime.now();
+    final ym = isoOf(now).substring(0, 7);
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    for (final r in recurring) {
+      if (!r.active) continue;
+      if (r.dayOfMonth > daysInMonth) continue;
+      if (now.day != r.dayOfMonth) continue;
+      final la = r.lastApplied;
+      if (la != null && la.length >= 10 && la.substring(0, 7) == ym) continue;
+      money.add(MoneyEntry(uid())
+        ..type = r.type
+        ..amount = r.amount
+        ..accountId = r.accountId
+        ..cat = r.cat
+        ..note = r.note
+        ..date = todayStr());
+      r.lastApplied = todayStr();
+    }
   }
 
   String? subjectName(String? id) {
@@ -501,6 +627,9 @@ class AppState {
       case 'sessions': return sessions.map((a) => a.toJson()).toList();
       case 'projects': return projects.map((a) => a.toJson()).toList();
       case 'money': return money.map((a) => a.toJson()).toList();
+      case 'budgets': return budgets.map((a) => a.toJson()).toList();
+      case 'recurring': return recurring.map((a) => a.toJson()).toList();
+      case 'savingsGoals': return savingsGoals.map((a) => a.toJson()).toList();
       case 'habits': return habits.map((a) => a.toJson()).toList();
       case 'notes': return notes.map((a) => a.toJson()).toList();
       case 'quran': return Map<String, dynamic>.from(quran);
@@ -529,6 +658,9 @@ class AppState {
       case 'sessions': sessions = _list<Session>(l, Session.fromJson);
       case 'projects': projects = _list<Project>(l, Project.fromJson);
       case 'money': money = _list<MoneyEntry>(l, MoneyEntry.fromJson);
+      case 'budgets': budgets = _list<BudgetCategory>(l, BudgetCategory.fromJson);
+      case 'recurring': recurring = _list<RecurringEntry>(l, RecurringEntry.fromJson);
+      case 'savingsGoals': savingsGoals = _list<SavingsGoal>(l, SavingsGoal.fromJson);
       case 'habits': habits = _list<Habit>(l, Habit.fromJson);
       case 'notes': notes = _list<Note>(l, Note.fromJson);
       case 'quran': quran = m ?? {'khitma': 0, 'cur': [], 'log': {}};
@@ -580,3 +712,15 @@ List<String> visibleTabIds(AppState s) => s.tabLayout
     .where((m) => m['visible'] == true)
     .map((m) => m['id'] as String)
     .toList();
+
+/// Timetable cell lookup with A/B week support (key 'periodId:wd:week').
+/// Falls back to the legacy 'periodId:wd' key when the active week is A (0),
+/// so pre-A/B data remains visible until overwritten with a week-ed key.
+String? cellAt(AppState s, String periodId, int wd) {
+  final w = s.settings.weekOffset;
+  final key = '$periodId:$wd:$w';
+  final v = s.cells[key];
+  if (v != null && v.isNotEmpty) return v;
+  if (w == 0) return s.cells['$periodId:$wd'];
+  return null;
+}
